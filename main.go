@@ -1,9 +1,9 @@
 package main
 
 import (
-	"calculator/service/calculator"
-	"calculator/service/storage"
-	"calculator/ui"
+	"app/service/calculator"
+	"app/service/storage"
+	cli "app/ui"
 )
 
 func main() {

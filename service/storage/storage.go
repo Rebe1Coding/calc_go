@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"calculator/models"
+	"app/models"
 	"encoding/json"
 	"os"
 	"time"

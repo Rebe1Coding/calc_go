@@ -5,6 +5,42 @@
       "command": "curl -H \"Accept: application/json\" https://api.github.com",
       "result": "Error making request: Get \"-H\": unsupported protocol scheme \"\"",
       "timestamp": "2025-10-11 00:36:53"
+    },
+    {
+      "id": 2,
+      "command": "5+5",
+      "result": "5+5",
+      "timestamp": "2025-10-11 01:33:48"
+    },
+    {
+      "id": 3,
+      "command": "10 - 1",
+      "result": "9",
+      "timestamp": "2025-10-11 01:33:57"
+    },
+    {
+      "id": 4,
+      "command": "5 +6",
+      "result": "Error: invalid expression format",
+      "timestamp": "2025-10-11 01:34:05"
+    },
+    {
+      "id": 5,
+      "command": "5 + 6",
+      "result": "11",
+      "timestamp": "2025-10-11 01:34:09"
+    },
+    {
+      "id": 6,
+      "command": "5 = 5",
+      "result": "Error: invalid variable name",
+      "timestamp": "2025-10-11 01:34:25"
+    },
+    {
+      "id": 7,
+      "command": "5 + 5",
+      "result": "10",
+      "timestamp": "2025-10-11 01:34:35"
     }
   ],
   "variables": {}

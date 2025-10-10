@@ -1,8 +1,8 @@
 package cli
 
 import (
+	"app/service/calculator"
 	"bufio"
-	"calculator/service/calculator"
 	"fmt"
 	"os"
 )
