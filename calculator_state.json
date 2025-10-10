@@ -1,0 +1,11 @@
+{
+  "commands": [
+    {
+      "id": 1,
+      "command": "curl -H \"Accept: application/json\" https://api.github.com",
+      "result": "Error making request: Get \"-H\": unsupported protocol scheme \"\"",
+      "timestamp": "2025-10-11 00:36:53"
+    }
+  ],
+  "variables": {}
+}
