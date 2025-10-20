@@ -88,7 +88,11 @@ func (a *AppLauncher) OpenBrowser(url string) bool {
 	}
 
 	fmt.Printf("Открываю браузер: %s\n", url)
-
+	if a == nil {
+		fmt.Printf("Ошибка: AppLauncher не инициализирован\n")
+		return false
+	}
+	fmt.Printf("Система: %s\n", a.system)
 	switch a.system {
 	case "darwin": // macOS
 		cmd := exec.Command("open", url)

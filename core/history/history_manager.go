@@ -18,12 +18,6 @@ func NewHistoryManager(persistence *PersistenceManager) *HistoryManager {
 	}
 }
 
-func NewHistoryManagerWithLimit(persistence *PersistenceManager, maxHistory int) *HistoryManager {
-	return &HistoryManager{
-		persistence: persistence,
-		maxHistory:  maxHistory,
-	}
-}
 
 // AddCommand - добавление команды в историю с сохранением в JSON
 func (hm *HistoryManager) AddCommand(command string) {
@@ -155,41 +149,3 @@ func (hm *HistoryManager) GetLastCommand() string {
 	return history[0].Command
 }
 
-// // Пример использования
-// func main() {
-// 	// Создаем менеджер сохранения и истории
-// 	pm := NewPersistenceManager()
-// 	hm := NewHistoryManagerWithLimit(pm, 50)
-
-// 	// Добавляем команды в историю
-// 	commands := []string{
-// 		"2 + 2",
-// 		"x = 10",
-// 		"y = x * 2",
-// 		"print(x + y)",
-// 		"clear",
-// 	}
-
-// 	for _, cmd := range commands {
-// 		hm.AddCommand(cmd)
-// 		fmt.Printf("Добавлена команда: %s\n", cmd)
-// 	}
-
-// 	// Получаем детальную историю
-// 	fmt.Println("\nДетальная история (последние 3 команды):")
-// 	detailed := hm.GetDetailedHistory(3)
-// 	for _, entry := range detailed {
-// 		fmt.Printf("[%s] #%d: %s\n", entry.Time, entry.ID, entry.Command)
-// 	}
-
-// 	// Поиск по истории
-// 	fmt.Println("\nРезультаты поиска 'x':")
-// 	searchResults := hm.SearchHistory("x")
-// 	for _, result := range searchResults {
-// 		fmt.Printf("#%d: %s\n", result.ID, result.Command)
-// 	}
-
-// 	// Статистика
-// 	fmt.Printf("\nВсего записей в истории: %d\n", hm.GetHistoryCount())
-// 	fmt.Printf("Последняя команда: %s\n", hm.GetLastCommand())
-// }

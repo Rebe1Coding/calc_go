@@ -16,23 +16,23 @@ type Config struct {
 
 func Load() *Config {
 	// Загрузка .env файла
-	err := godotenv.Load()
+	err := godotenv.Load(".env")
 	if err != nil {
 		log.Println("No .env file found, using system environment variables")
 	}
 
 	return &Config{
-		Username:    getEnv("USERNAME", "user"),
-		Password:    getEnv("PASSWORD", "123"),
-		DeepSeekURL: getEnv("DEEPSEEK_URL", "URL not set"),
+		Username:    getEnv("USER"),
+		Password:    getEnv("PASSWORD"),
+		DeepSeekURL: getEnv("DEEPSEEK_URL"),
 	}
 }
 
-func getEnv(key, defaultValue string) string {
+func getEnv(key string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
-	return defaultValue
+	return ""
 }
 
 func getEnvAsBool(key string, defaultValue bool) bool {

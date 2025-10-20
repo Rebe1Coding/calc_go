@@ -32,7 +32,7 @@ func NewInterpreter() *Interpreter {
 		persistence:    persistence.NewPersistenceManager(),
 		curlClient:     curl.NewCurlClient(),
 		deepseekClient: agent.NewDeepSeekClient(),
-		// appLauncher:    NewAppLauncher(),
+		appLauncher:    applauncher.NewAppLauncher(),
 	}
 
 	interpreter.history = history.NewHistoryManager(interpreter.persistence)
@@ -86,21 +86,14 @@ func (i *Interpreter) Execute(inputStr string) (interface{}, error) {
 		return i.handleCurl(urlArgs), nil
 	}
 
-	// Проверка статуса DeepSeek
 	if strings.TrimSpace(inputStr) == "deepseek status" {
-		allStatus := i.deepseekClient.CheckAllTokensStatus()
+		status, err := i.deepseekClient.CheckTokenStatus()
 		var result strings.Builder
-		result.WriteString("Статус всех токенов DeepSeek:\n")
-		result.WriteString("----------------------------------------\n")
-
-		for username, status := range allStatus {
-			if status.Remaining == -1 {
-				result.WriteString(fmt.Sprintf("%s: ОШИБКА\n", username))
-			} else {
-				result.WriteString(fmt.Sprintf("%s: %d/%d (осталось %d)\n",
-					username, status.RequestsToday, status.DailyLimit, status.Remaining))
-			}
+		if err != nil {
+			return nil, fmt.Errorf("ошибка проверки статуса DeepSeek: %v", err)
 		}
+
+		result.WriteString(fmt.Sprintf("Токен действителен: %v\n", status))
 		return result.String(), nil
 	}
 
@@ -108,7 +101,6 @@ func (i *Interpreter) Execute(inputStr string) (interface{}, error) {
 		return i.handleFreeFormInput(inputStr), nil
 	}
 
-	// Сохраняем в историю
 	i.history.AddCommand(inputStr)
 
 	// Обработка присваивания переменных
@@ -121,13 +113,11 @@ func (i *Interpreter) Execute(inputStr string) (interface{}, error) {
 		i.saveState()
 		return fmt.Sprintf("%s = %v", varName, result), nil
 	}
-	if i.isFreeFormInput(inputStr) {
-		return i.handleFreeFormInput(inputStr), nil
-	}
 
 	// Обработка математических выражений
 	return i.evaluateExpression(inputStr)
 }
+
 func (i *Interpreter) ClearHistory() int {
 	count := i.history.GetHistoryCount()
 	i.history.ClearHistory()
@@ -189,34 +179,47 @@ func (i *Interpreter) searchHistory(keyword string) string {
 	return result.String()
 }
 
-// isFreeFormInput - определяет, является ли ввод свободной формой
+// / isFreeFormInput - определяет, является ли ввод свободной формой
+
 func (i *Interpreter) isFreeFormInput(inputStr string) bool {
+	// Убираем лишние пробелы
+	trimmed := strings.TrimSpace(inputStr)
+
 	// Исключаем чистые математические выражения
 	mathPattern := regexp.MustCompile(`^[\d\s+\-*/().^%]+$`)
-	cleanInput := strings.ReplaceAll(inputStr, " ", "")
+	cleanInput := strings.ReplaceAll(trimmed, " ", "")
 	if mathPattern.MatchString(cleanInput) {
 		return false
 	}
 
-	// Исключаем присваивания (уже обработаны)
-	if strings.Contains(inputStr, "=") {
+	// Исключаем присваивания переменных
+	if strings.Contains(trimmed, "=") {
 		assignmentPattern := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*\s*=`)
-		if assignmentPattern.MatchString(inputStr) {
+		if assignmentPattern.MatchString(trimmed) {
 			return false
 		}
 	}
 
 	// Исключаем команды истории
-	trimmed := strings.TrimSpace(inputStr)
 	if trimmed == "history" || trimmed == "history clear" || strings.HasPrefix(trimmed, "history search") {
 		return false
 	}
 
-	return true
+	// Исключаем простой вывод переменных (только имя переменной)
+	varPattern := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	if varPattern.MatchString(trimmed) {
+		return false
+	}
+
+	// Исключаем математические выражения с переменными
+	// Например: x + 10, x-5, y * 2 и т.д.
+	exprWithVarsPattern := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*|\d+)(\s*[\+\-\*/\^%]\s*([a-zA-Z_][a-zA-Z0-9_]*|\d+))*$`)
+	cleanExpr := strings.ReplaceAll(trimmed, " ", "")
+
+	return !exprWithVarsPattern.MatchString(cleanExpr)
 }
 
 func (i *Interpreter) handleFreeFormInput(inputStr string) string {
-	fmt.Printf("Обработка свободного ввода: %s\n", inputStr)
 
 	// Классификация запроса
 	classification := i.deepseekClient.ClassifyRequest(inputStr)
@@ -416,10 +419,3 @@ func (i *Interpreter) handleCurl(urlArgs string) string {
 
 	return result
 }
-
-// Заглушки для отсутствующих компонентов
-// type DeepSeekClient struct{}
-// type AppLauncher struct{}
-
-// func NewDeepSeekClient() *DeepSeekClient { return &DeepSeekClient{} }
-// func NewAppLauncher() *AppLauncher       { return &AppLauncher{} }

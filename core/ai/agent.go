@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"app/config"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,18 +19,19 @@ type TokenCredential struct {
 // DeepSeekClient - клиент для работы с DeepSeek API через прокси
 type DeepSeekClient struct {
 	baseURL           string
-	credentials       []TokenCredential
+	credentials       TokenCredential
 	currentTokenIndex int
 	client            *http.Client
 }
 
 func NewDeepSeekClient() *DeepSeekClient {
+	config := config.Load()
+
 	return &DeepSeekClient{
-		baseURL: "http://deproxy.kchugalinskiy.ru/deeproxy/api",
-		credentials: []TokenCredential{
-			{Username: "41-1", Password: "SjA9YW9S"},
-			{Username: "41-2", Password: "U0dMUjFs"},
-			{Username: "42", Password: "dkljRktA"},
+		baseURL: config.DeepSeekURL,
+		credentials: TokenCredential{
+			Username: config.Username,
+			Password: config.Password,
 		},
 		currentTokenIndex: 0,
 		client: &http.Client{
@@ -38,22 +40,6 @@ func NewDeepSeekClient() *DeepSeekClient {
 	}
 }
 
-// getCurrentAuth - получение текущих учетных данных
-func (d *DeepSeekClient) getCurrentAuth() (string, string) {
-	cred := d.credentials[d.currentTokenIndex]
-	return cred.Username, cred.Password
-}
-
-// rotateToken - смена токена при ошибках или лимитах
-func (d *DeepSeekClient) rotateToken() {
-	oldIndex := d.currentTokenIndex
-	d.currentTokenIndex = (d.currentTokenIndex + 1) % len(d.credentials)
-	fmt.Printf("Переключен с токена %s на %s\n",
-		d.credentials[oldIndex].Username,
-		d.credentials[d.currentTokenIndex].Username)
-}
-
-// TokenStatus - статус токена
 type TokenStatus struct {
 	DailyLimit    int    `json:"daily_limit"`
 	Remaining     int    `json:"remaining"`
@@ -61,15 +47,15 @@ type TokenStatus struct {
 	Username      string `json:"username"`
 }
 
-// CheckTokenStatus - проверка статуса токена
 func (d *DeepSeekClient) CheckTokenStatus() (*TokenStatus, error) {
 	req, err := http.NewRequest("GET", d.baseURL+"/status", nil)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка создания запроса: %v", err)
 	}
-
-	username, password := d.getCurrentAuth()
-	req.SetBasicAuth(username, password)
+	fmt.Printf("Проверка статуса токена для пользователя %s\n", d.credentials.Username)
+	fmt.Printf("Используем DeepSeek URL: %s\n", d.baseURL)
+	fmt.Printf("Используем DeepSeek Username: %s\n", d.credentials.Password)
+	req.SetBasicAuth(d.credentials.Username, d.credentials.Password)
 
 	response, err := d.client.Do(req)
 	if err != nil {
@@ -88,31 +74,6 @@ func (d *DeepSeekClient) CheckTokenStatus() (*TokenStatus, error) {
 	}
 
 	return &status, nil
-}
-
-// CheckAllTokensStatus - проверка статуса всех токенов
-func (d *DeepSeekClient) CheckAllTokensStatus() map[string]*TokenStatus {
-	results := make(map[string]*TokenStatus)
-
-	originalIndex := d.currentTokenIndex
-
-	for i := range d.credentials {
-		d.currentTokenIndex = i
-		status, err := d.CheckTokenStatus()
-		if err != nil {
-			results[d.credentials[i].Username] = &TokenStatus{
-				Username:  d.credentials[i].Username,
-				Remaining: -1, // маркер ошибки
-			}
-		} else {
-			results[d.credentials[i].Username] = status
-		}
-	}
-
-	// Возвращаем оригинальный индекс
-	d.currentTokenIndex = originalIndex
-
-	return results
 }
 
 // ClassificationResult - результат классификации запроса
@@ -214,79 +175,50 @@ func (d *DeepSeekClient) makeDeepSeekRequest(systemPrompt, userPrompt string) (s
 		Temperature: 0.3,
 		Stream:      false,
 	}
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("ошибка маршалинга JSON: %v", err)
+	}
 
-	// Пробуем все доступные токены
-	for attempt := 0; attempt < len(d.credentials); attempt++ {
-		// Проверяем лимиты текущего токена
-		status, err := d.CheckTokenStatus()
-		if err != nil {
-			fmt.Printf("Токен %s недоступен: %v\n", d.credentials[d.currentTokenIndex].Username, err)
-			d.rotateToken()
-			continue
-		}
+	req, err := http.NewRequest("POST", d.baseURL+"/completions", strings.NewReader(string(jsonData)))
+	if err != nil {
 
-		if status.Remaining <= 0 {
-			fmt.Printf("Токен %s исчерпал лимит (%d/%d)\n",
-				status.Username, status.RequestsToday, status.DailyLimit)
-			d.rotateToken()
-			continue
-		}
+		fmt.Printf("Ошибка создания запроса с токеном %s: %v\n", d.credentials.Username, err)
+	}
 
-		fmt.Printf("Используем токен %s для AI запроса (осталось %d/%d)\n",
-			status.Username, status.Remaining, status.DailyLimit)
+	req.SetBasicAuth(d.credentials.Username, d.credentials.Password)
+	req.Header.Set("Content-Type", "application/json")
 
-		jsonData, err := json.Marshal(payload)
-		if err != nil {
-			return "", fmt.Errorf("ошибка маршалинга JSON: %v", err)
-		}
+	response, err := d.client.Do(req)
+	if err != nil {
+		fmt.Printf("Ошибка запроса с токеном %s: %v\n", d.credentials.Username, err)
 
-		req, err := http.NewRequest("POST", d.baseURL+"/completions", strings.NewReader(string(jsonData)))
-		if err != nil {
-			d.rotateToken()
-			continue
-		}
+	}
+	defer response.Body.Close()
 
-		username, password := d.getCurrentAuth()
-		req.SetBasicAuth(username, password)
-		req.Header.Set("Content-Type", "application/json")
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Printf("Ошибка чтения ответа с токеном %s: %v\n", d.credentials.Username, err)
 
-		response, err := d.client.Do(req)
-		if err != nil {
-			fmt.Printf("Ошибка запроса с токеном %s: %v\n", username, err)
-			d.rotateToken()
-			continue
-		}
-		defer response.Body.Close()
+	}
 
-		body, err := io.ReadAll(response.Body)
-		if err != nil {
-			fmt.Printf("Ошибка чтения ответа с токеном %s: %v\n", username, err)
-			d.rotateToken()
-			continue
-		}
+	// // Отладочная информация для AI запросов
+	// fmt.Printf("AI Response Status: %d\n", response.StatusCode)
+	// fmt.Printf("AI Response Body: %s\n", string(body))
 
-		// Отладочная информация для AI запросов
-		fmt.Printf("AI Response Status: %d\n", response.StatusCode)
-		fmt.Printf("AI Response Body: %s\n", string(body))
+	var result DeepSeekResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		fmt.Printf("Ошибка парсинга JSON с токеном %s: %v\n", d.credentials.Username, err)
 
-		var result DeepSeekResponse
-		if err := json.Unmarshal(body, &result); err != nil {
-			fmt.Printf("Ошибка парсинга JSON с токеном %s: %v\n", username, err)
-			d.rotateToken()
-			continue
-		}
+	}
 
-		if result.Error != nil {
-			fmt.Printf("API ошибка с токеном %s: %s\n", username, result.Error.Message)
-			d.rotateToken()
-			continue
-		}
+	if result.Error != nil {
+		fmt.Printf("API ошибка с токеном %s: %s\n", d.credentials.Username, result.Error.Message)
 
-		if len(result.Choices) > 0 && result.Choices[0].Message.Content != "" {
-			return result.Choices[0].Message.Content, nil
-		}
+	}
 
-		d.rotateToken()
+	if len(result.Choices) > 0 && result.Choices[0].Message.Content != "" {
+		return result.Choices[0].Message.Content, nil
 	}
 
 	return "", fmt.Errorf("все токены недоступны или исчерпали лимиты")
