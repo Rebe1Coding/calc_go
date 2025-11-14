@@ -1,24 +1,36 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"time"
+
 	"app/core/interpreter"
 	"app/ui"
-	"fmt"
-	"os"
+
+	"github.com/skratchdot/open-golang/open"
 )
 
 func main() {
+	i := interpreter.NewInterpreter()
+	web := ui.NewWebInterface(i)
 
-	// Инициализация калькулятора
-	calc := interpreter.NewInterpreter()
+	addr := ":8080"
+	url := "http://localhost" + addr
 
-	// Создание консольного интерфейса
-	console := ui.NewConsoleInterface(calc)
+	go func() {
+		time.Sleep(500 * time.Millisecond) // ждём запуска сервера
+		err := open.Run(url)
+		if err != nil {
+			log.Printf("❌ Не удалось открыть браузер: %v", err)
+		}
+	}()
 
-	// Запуск интерфейса
-	if err := console.Run(); err != nil {
-		fmt.Printf("❌ Ошибка: %v\n", err)
-		os.Exit(1)
+	fmt.Printf("🌐 Открывается в браузере: %s\n", url)
+	fmt.Println("Нажмите Ctrl+C для выхода.")
+
+	err := web.Start(addr)
+	if err != nil {
+		log.Fatal(err)
 	}
-
 }

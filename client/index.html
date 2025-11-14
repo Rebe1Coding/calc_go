@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>🧮 Калькулятор-интерпретатор</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>🧮 Калькулятор-интерпретатор</h1>
+  <div id="output">Привет! Введите команду.</div>
+  <div>
+    <input type="text" id="input" placeholder="calc> " />
+    <button onclick="sendCommand()">Выполнить</button>
+  </div>
+  <div>
+    <button onclick="showVars()">Переменные</button>
+    <button onclick="showHistory()">История</button>
+    <button onclick="clearOutput()">Очистить</button>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
