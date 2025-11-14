@@ -59,8 +59,12 @@ func (w *WebInterface) handleVars(wr http.ResponseWriter, _ *http.Request) {
 }
 
 func (w *WebInterface) handleHistory(wr http.ResponseWriter, _ *http.Request) {
-	history := w.interpreter.ShowHistory()
-	json.NewEncoder(wr).Encode(history)
+	commands := w.interpreter.GetHistoryCommands(10)
+	if len(commands) == 0 {
+		json.NewEncoder(wr).Encode([]string{})
+		return
+	}
+	json.NewEncoder(wr).Encode(commands)
 }
 
 func (w *WebInterface) handleClearHistory(wr http.ResponseWriter, _ *http.Request) {

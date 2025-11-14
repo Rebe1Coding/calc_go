@@ -1,22 +1,49 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>🧮 Калькулятор-интерпретатор</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Калькулятор-интерпретатор</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🧮 Калькулятор-интерпретатор</h1>
-  <div id="output">Привет! Введите команду.</div>
-  <div>
-    <input type="text" id="input" placeholder="calc> " />
-    <button onclick="sendCommand()">Выполнить</button>
-  </div>
-  <div>
-    <button onclick="showVars()">Переменные</button>
-    <button onclick="showHistory()">История</button>
-    <button onclick="clearOutput()">Очистить</button>
-  </div>
+  <main class="app">
+    <header class="topbar">
+      <h1 class="title">Калькулятор-интерпретатор</h1>
+      <div class="controls">
+        <button class="pill btn-ghost" id="btn-vars">Переменные</button>
+        <button class="pill btn-ghost" id="btn-history">История</button>
+        <button class="pill btn-ghost" id="btn-clear">Очистить</button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div id="output" class="output" aria-live="polite">Добро пожаловать. Введите команду.</div>
+
+      <form id="promptForm" class="prompt" autocomplete="off">
+        <div class="prompt-left">
+          <span class="prompt-label">calc&gt;</span>
+        </div>
+        <div class="prompt-center">
+          <input id="input" name="input" type="text" spellcheck="false" placeholder="Введите команду..." />
+        </div>
+        <div class="prompt-right">
+          <button type="submit" class="btn-warp" id="btn-send">Выполнить</button>
+        </div>
+      </form>
+    </section>
+
+    <aside id="cards" class="cards hidden" aria-hidden="true">
+      <div class="cards-inner" id="cards-inner"></div>
+      <div class="cards-footer">
+        <button class="pill" id="close-cards">Закрыть</button>
+      </div>
+    </aside>
+
+    <audio id="sfx-success" src="" hidden></audio>
+    <audio id="sfx-error" src="" hidden></audio>
+  </main>
+
   <script src="script.js"></script>
 </body>
 </html>

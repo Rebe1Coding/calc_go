@@ -113,7 +113,7 @@ type DeepSeekResponse struct {
 func (d *DeepSeekClient) ClassifyRequest(userInput string) *ClassificationResult {
 	systemPrompt := `Ты - классификатор запросов. Определи тип запроса и извлеки relevant информацию.
 Возможные типы:
-- browser: запрос на открытие сайта, извлеки URL
+- browser: запрос на открытие сайта если явно не указан URL например "открой гугл" то определи реальный URL
 - media: запрос на открытие медиафайла, извлечи путь к файлу
 - curl: запрос на получение данных по URL, извлечи URL
 - general: общий запрос

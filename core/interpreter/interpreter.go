@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type Interpreter struct {
@@ -135,48 +134,14 @@ func (i *Interpreter) parseAssignment(inputStr string) (bool, string, string) {
 	return false, "", ""
 }
 
-// showHistory - показать полную историю
-func (i *Interpreter) ShowHistory() string {
-	history := i.history.GetDetailedHistory(10)
-	if len(history) == 0 {
-		return "История пуста"
+// GetHistoryCommands — получить только команды в виде массива строк
+func (i *Interpreter) GetHistoryCommands(limit int) []string {
+	history := i.history.GetDetailedHistory(limit)
+	commands := make([]string, len(history))
+	for idx, entry := range history {
+		commands[idx] = entry.Command
 	}
-
-	var result strings.Builder
-	result.WriteString("Полная история команд:\n")
-	result.WriteString(strings.Repeat("-", 60) + "\n")
-
-	for _, entry := range history {
-		result.WriteString(fmt.Sprintf("%3d. [%s] %s\n", entry.ID, entry.Time, entry.Command))
-	}
-
-	result.WriteString(fmt.Sprintf("Всего команд: %d", len(history)))
-	return result.String()
-}
-
-// searchHistory - поиск по истории
-func (i *Interpreter) searchHistory(keyword string) string {
-	results := i.history.SearchHistory(keyword)
-	if len(results) == 0 {
-		return fmt.Sprintf("По запросу '%s' ничего не найдено", keyword)
-	}
-
-	var result strings.Builder
-	result.WriteString(fmt.Sprintf("Результаты поиска по '%s':\n", keyword))
-	result.WriteString(strings.Repeat("-", 50) + "\n")
-
-	for _, entry := range results {
-		timeStr := "unknown"
-		if entry.Timestamp != "" {
-			if t, err := time.Parse(time.RFC3339, entry.Timestamp); err == nil {
-				timeStr = t.Format("2006-01-02 15:04:05")
-			}
-		}
-		result.WriteString(fmt.Sprintf("[%s] %s\n", timeStr, entry.Command))
-	}
-
-	result.WriteString(fmt.Sprintf("Найдено: %d команд", len(results)))
-	return result.String()
+	return commands
 }
 
 // / isFreeFormInput - определяет, является ли ввод свободной формой
