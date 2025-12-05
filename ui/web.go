@@ -26,7 +26,7 @@ func (w *WebInterface) Start(addr string) error {
 	http.HandleFunc("/api/clear-vars", w.handleClearVars)
 
 	// Serve static files from frontend directory
-	fs := http.FileServer(http.Dir(filepath.Join(".", "client")))
+	fs := http.FileServer(http.Dir(filepath.Join(".", "static")))
 	http.Handle("/", fs)
 
 	return http.ListenAndServe(addr, nil)

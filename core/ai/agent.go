@@ -116,9 +116,11 @@ func (d *DeepSeekClient) ClassifyRequest(userInput string) *ClassificationResult
 - browser: запрос на открытие сайта если явно не указан URL например "открой гугл" то определи реальный URL
 - media: запрос на открытие медиафайла, извлечи путь к файлу
 - curl: запрос на получение данных по URL, извлечи URL
+- call: звонок через WebRTC, извлеки тип звонка (audio/video) и цель (номер или имя) Пример команды: "позвони антончик аудио" или "call username video"
 - general: общий запрос
+- login: запрос на вход в систему пример
 
-Ответ в формате JSON: {"type": "browser|media|curl|general", "url": "...", "file_path": "..."}`
+Ответ в формате JSON: {"type": "browser|media|curl|general|call|login", "url": "...", "file_path": "...", login_name: "...", call_target, "call_type": "..."}`
 
 	response, err := d.makeDeepSeekRequest(systemPrompt, userInput)
 	if err != nil {

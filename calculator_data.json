@@ -323,6 +323,41 @@
       "command": "x = \"https://jsonplaceholder.typicode.com/\"",
       "timestamp": "2025-11-14T20:41:20+03:00",
       "id": 64
+    },
+    {
+      "command": "войти генадий",
+      "timestamp": "2025-12-05T20:36:01+03:00",
+      "id": 65
+    },
+    {
+      "command": "login alice",
+      "timestamp": "2025-12-05T20:36:39+03:00",
+      "id": 66
+    },
+    {
+      "command": "войти генадий",
+      "timestamp": "2025-12-05T20:53:14+03:00",
+      "id": 67
+    },
+    {
+      "command": "войти геннадий ",
+      "timestamp": "2025-12-05T21:17:21+03:00",
+      "id": 68
+    },
+    {
+      "command": "login alice",
+      "timestamp": "2025-12-05T21:32:57+03:00",
+      "id": 69
+    },
+    {
+      "command": "login lol",
+      "timestamp": "2025-12-05T21:59:14+03:00",
+      "id": 70
+    },
+    {
+      "command": "login antochick ",
+      "timestamp": "2025-12-05T22:05:54+03:00",
+      "id": 71
     }
   ]
 }
