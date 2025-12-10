@@ -8,12 +8,38 @@ import (
 	"app/core/history"
 	"app/core/persistence"
 	"app/core/variables"
+	"app/core/webrtc"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
-	"time"
 )
+
+// ============================================================================
+// КОНСТАНТЫ
+// ============================================================================
+
+const (
+	MaxOutputLength     = 1000
+	MaxSummaryLength    = 500
+	MaxHistoryEntries   = 1000
+	MinUsernameLength   = 3
+	RecentCommandsCount = 10
+)
+
+// ============================================================================
+// ТИПЫ И ИНТЕРФЕЙСЫ
+// ============================================================================
+
+type WebRTCServer interface {
+	InitiateCall(caller, target, callType string) (*webrtc.Session, error)
+}
+
+// Classification представляет результат классификации запроса
+type Classification struct {
+	Type     string
+	URL      string
+	FilePath string
+}
 
 type Interpreter struct {
 	evaluator      *evaluator.Evaluator
@@ -23,7 +49,13 @@ type Interpreter struct {
 	curlClient     *curl.CurlClient
 	deepseekClient *agent.DeepSeekClient
 	appLauncher    *applauncher.AppLauncher
+	webrtcServer   WebRTCServer
+	currentUser    string
 }
+
+// ============================================================================
+// ИНИЦИАЛИЗАЦИЯ
+// ============================================================================
 
 func NewInterpreter() *Interpreter {
 	interpreter := &Interpreter{
@@ -36,346 +68,453 @@ func NewInterpreter() *Interpreter {
 	}
 
 	interpreter.history = history.NewHistoryManager(interpreter.persistence)
-
 	interpreter.loadState()
 
 	return interpreter
 }
 
-// loadState - загрузка предыдущего состояния из JSON
 func (i *Interpreter) loadState() {
 	data := i.persistence.LoadData()
-	if data != nil {
-		// Загружаем историю
-		if len(data.History) > 0 {
-			i.history.SetHistory(data.History)
-		}
-
-		// Загружаем переменные
-		if len(data.Variables) > 0 {
-			i.variables.SetVariables(data.Variables)
-		}
-
-		// Показываем последние 10 команд при старте
-		recentHistory := i.history.GetDetailedHistory(10)
-		if len(recentHistory) > 0 {
-			fmt.Println("Последние 10 команд из истории:")
-			fmt.Println(strings.Repeat("-", 50))
-			for _, entry := range recentHistory {
-				fmt.Printf("%3d. [%s] %s\n", entry.ID, entry.Time, entry.Command)
-			}
-			fmt.Println(strings.Repeat("-", 50))
-		}
+	if data == nil {
+		return
 	}
+
+	if len(data.History) > 0 {
+		i.history.SetHistory(data.History)
+	}
+
+	if len(data.Variables) > 0 {
+		i.variables.SetVariables(data.Variables)
+	}
+
+	i.displayRecentHistory()
 }
 
-// saveState - сохранение текущего состояния в JSON
+func (i *Interpreter) displayRecentHistory() {
+	recentHistory := i.history.GetDetailedHistory(RecentCommandsCount)
+	if len(recentHistory) == 0 {
+		return
+	}
+
+	fmt.Printf("Последние %d команд из истории:\n", RecentCommandsCount)
+	fmt.Println(strings.Repeat("-", 50))
+	for _, entry := range recentHistory {
+		fmt.Printf("%3d. [%s] %s\n", entry.ID, entry.Time, entry.Command)
+	}
+	fmt.Println(strings.Repeat("-", 50))
+}
+
 func (i *Interpreter) saveState() {
 	data := &persistence.CalculatorData{
-		History:   i.history.GetHistory(1000), // Сохраняем до 1000 последних записей
+		History:   i.history.GetHistory(MaxHistoryEntries),
 		Variables: i.variables.GetVariables(),
 	}
 	i.persistence.SaveData(data)
 }
 
-// Execute - выполнение введенной команды
+// ============================================================================
+// ОСНОВНОЕ ВЫПОЛНЕНИЕ
+// ============================================================================
+
 func (i *Interpreter) Execute(inputStr string) (interface{}, error) {
+	// Обработка команды звонка
+	if match, target, callType := i.parseCallCommand(inputStr); match {
+		return i.handleCall(target, callType)
+	}
+
+	// Обработка команды логина
+	if i.isLoginCommand(inputStr) {
+		return i.HandleWebRTCLogin(inputStr)
+	}
+
 	// Обработка curl команд
 	if strings.HasPrefix(strings.TrimSpace(inputStr), "curl ") {
-		urlArgs := strings.TrimSpace(inputStr[4:])
+		urlArgs := strings.TrimSpace(inputStr[5:])
 		return i.handleCurl(urlArgs), nil
 	}
 
-	if strings.TrimSpace(inputStr) == "deepseek status" {
-		status, err := i.deepseekClient.CheckTokenStatus()
-		var result strings.Builder
-		if err != nil {
-			return nil, fmt.Errorf("ошибка проверки статуса DeepSeek: %v", err)
-		}
-
-		result.WriteString(fmt.Sprintf("Токен действителен: %v\n", status))
-		return result.String(), nil
-	}
-
+	// Обработка свободной формы (AI)
 	if i.isFreeFormInput(inputStr) {
 		return i.handleFreeFormInput(inputStr), nil
 	}
 
+	// Добавление в историю для математических выражений
 	i.history.AddCommand(inputStr)
 
 	// Обработка присваивания переменных
-	if assignmentMatch, varName, expression := i.parseAssignment(inputStr); assignmentMatch {
-		result, err := i.evaluateExpression(expression)
-		if err != nil {
-			return nil, err
-		}
-		i.variables.SetVariable(varName, result)
-		i.saveState()
-		return fmt.Sprintf("%s = %v", varName, result), nil
+	if match, varName, expression := i.parseAssignment(inputStr); match {
+		return i.handleAssignment(varName, expression)
 	}
 
 	// Обработка математических выражений
 	return i.evaluateExpression(inputStr)
 }
 
-func (i *Interpreter) ClearHistory() int {
-	count := i.history.GetHistoryCount()
-	i.history.ClearHistory()
+// ============================================================================
+// ОБРАБОТКА ТИПОВ КОМАНД
+// ============================================================================
+
+func (i *Interpreter) handleAssignment(varName, expression string) (interface{}, error) {
+	result, err := i.evaluateExpression(expression)
+	if err != nil {
+		return nil, err
+	}
+	i.variables.SetVariable(varName, result)
 	i.saveState()
-	return count
-}
-
-// parseAssignment - парсинг присваивания переменных
-func (i *Interpreter) parseAssignment(inputStr string) (bool, string, string) {
-	re := regexp.MustCompile(`^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$`)
-	matches := re.FindStringSubmatch(inputStr)
-	if len(matches) == 3 {
-		return true, matches[1], matches[2]
-	}
-	return false, "", ""
-}
-
-// showHistory - показать полную историю
-func (i *Interpreter) ShowHistory() string {
-	history := i.history.GetDetailedHistory(10)
-	if len(history) == 0 {
-		return "История пуста"
-	}
-
-	var result strings.Builder
-	result.WriteString("Полная история команд:\n")
-	result.WriteString(strings.Repeat("-", 60) + "\n")
-
-	for _, entry := range history {
-		result.WriteString(fmt.Sprintf("%3d. [%s] %s\n", entry.ID, entry.Time, entry.Command))
-	}
-
-	result.WriteString(fmt.Sprintf("Всего команд: %d", len(history)))
-	return result.String()
-}
-
-// searchHistory - поиск по истории
-func (i *Interpreter) searchHistory(keyword string) string {
-	results := i.history.SearchHistory(keyword)
-	if len(results) == 0 {
-		return fmt.Sprintf("По запросу '%s' ничего не найдено", keyword)
-	}
-
-	var result strings.Builder
-	result.WriteString(fmt.Sprintf("Результаты поиска по '%s':\n", keyword))
-	result.WriteString(strings.Repeat("-", 50) + "\n")
-
-	for _, entry := range results {
-		timeStr := "unknown"
-		if entry.Timestamp != "" {
-			if t, err := time.Parse(time.RFC3339, entry.Timestamp); err == nil {
-				timeStr = t.Format("2006-01-02 15:04:05")
-			}
-		}
-		result.WriteString(fmt.Sprintf("[%s] %s\n", timeStr, entry.Command))
-	}
-
-	result.WriteString(fmt.Sprintf("Найдено: %d команд", len(results)))
-	return result.String()
-}
-
-// / isFreeFormInput - определяет, является ли ввод свободной формой
-
-func (i *Interpreter) isFreeFormInput(inputStr string) bool {
-	// Убираем лишние пробелы
-	trimmed := strings.TrimSpace(inputStr)
-
-	// Исключаем чистые математические выражения
-	mathPattern := regexp.MustCompile(`^[\d\s+\-*/().^%]+$`)
-	cleanInput := strings.ReplaceAll(trimmed, " ", "")
-	if mathPattern.MatchString(cleanInput) {
-		return false
-	}
-
-	// Исключаем присваивания переменных
-	if strings.Contains(trimmed, "=") {
-		assignmentPattern := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*\s*=`)
-		if assignmentPattern.MatchString(trimmed) {
-			return false
-		}
-	}
-
-	// Исключаем команды истории
-	if trimmed == "history" || trimmed == "history clear" || strings.HasPrefix(trimmed, "history search") {
-		return false
-	}
-
-	// Исключаем простой вывод переменных (только имя переменной)
-	varPattern := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-	if varPattern.MatchString(trimmed) {
-		return false
-	}
-
-	// Исключаем математические выражения с переменными
-	// Например: x + 10, x-5, y * 2 и т.д.
-	exprWithVarsPattern := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*|\d+)(\s*[\+\-\*/\^%]\s*([a-zA-Z_][a-zA-Z0-9_]*|\d+))*$`)
-	cleanExpr := strings.ReplaceAll(trimmed, " ", "")
-
-	return !exprWithVarsPattern.MatchString(cleanExpr)
+	return fmt.Sprintf("%s = %v", varName, result), nil
 }
 
 func (i *Interpreter) handleFreeFormInput(inputStr string) string {
-
-	// Классификация запроса
-	classification := i.deepseekClient.ClassifyRequest(inputStr)
-	fmt.Printf("Классификация: type=%s, url=%s, file_path=%s\n",
-		classification.Type, classification.URL, classification.FilePath)
+	classification := i.classifyAndParseRequest(inputStr)
 
 	switch classification.Type {
 	case "browser":
-		if classification.URL != "" {
-			success := i.appLauncher.OpenBrowser(classification.URL)
-			if success {
-				summary, err := i.deepseekClient.GetContentSummary(inputStr,
-					fmt.Sprintf("Открыт сайт %s", classification.URL))
-				if err != nil {
-					return fmt.Sprintf("Открыт браузер: %s", classification.URL)
-				}
-				return fmt.Sprintf("Открыт браузер: %s\n\nСводка:\n%s", classification.URL, summary)
-			}
-			return fmt.Sprintf("Не удалось открыть браузер: %s", classification.URL)
-		}
-
+		return i.handleBrowser(classification, inputStr)
 	case "media":
-		if classification.FilePath != "" {
-			success := i.appLauncher.OpenMedia(classification.FilePath)
-			if success {
-				return fmt.Sprintf("Открыт медиафайл: %s", classification.FilePath)
-			}
-			return fmt.Sprintf("Не удалось открыть файл: %s", classification.FilePath)
-		}
-
+		return i.handleMedia(classification)
 	case "curl":
-		if classification.URL != "" {
-			result, err := i.curlClient.Execute(classification.URL, nil)
-			if err != nil {
-				return fmt.Sprintf("Ошибка curl запроса: %v", err)
-			}
-
-			summary, err := i.deepseekClient.GetContentSummary(inputStr, result)
-			if err != nil {
-				return fmt.Sprintf("Результат запроса:\n%s", result)
-			}
-			return fmt.Sprintf("Результат запроса:\n%s\n\nСводка:\n%s", result, summary)
+		return i.handleCurlRequest(classification, inputStr)
+	case "call":
+		return i.handleCallFromClassification(inputStr)
+	case "login":
+		result, err := i.HandleWebRTCLogin(inputStr)
+		if err != nil {
+			return fmt.Sprintf("❌ %v", err)
 		}
+		return result
+	default:
+		return i.getAIResponse(inputStr)
+	}
+}
+
+func (i *Interpreter) classifyAndParseRequest(inputStr string) Classification {
+	rawClassification := i.deepseekClient.ClassifyRequest(inputStr)
+
+	fmt.Printf("Классификация: type=%s, url=%s, file_path=%s\n",
+		rawClassification.Type, rawClassification.URL, rawClassification.FilePath)
+
+	// Безопасное преобразование в структуру Classification
+	return Classification{
+		Type:     getStringField(rawClassification, "Type"),
+		URL:      getStringField(rawClassification, "URL"),
+		FilePath: getStringField(rawClassification, "FilePath"),
+	}
+}
+
+// ============================================================================
+// ОБРАБОТЧИКИ КЛАССИФИКАЦИЙ
+// ============================================================================
+
+func (i *Interpreter) handleBrowser(classification Classification, inputStr string) string {
+	if classification.URL == "" {
+		return "❌ Не удалось определить URL для браузера"
 	}
 
-	// Общий AI ответ для general типа или если классификация не сработала
-	response, err := i.deepseekClient.GetAIResponse(inputStr)
+	if !i.appLauncher.OpenBrowser(classification.URL) {
+		return fmt.Sprintf("❌ Не удалось открыть браузер: %s", classification.URL)
+	}
+
+	summary := i.getContentSummary(inputStr, fmt.Sprintf("Открыт сайт %s", classification.URL))
+	if summary != "" {
+		return fmt.Sprintf("✅ Открыт браузер: %s\n\nСводка:\n%s", classification.URL, summary)
+	}
+
+	return fmt.Sprintf("✅ Открыт браузер: %s", classification.URL)
+}
+
+func (i *Interpreter) handleMedia(classification Classification) string {
+	if classification.FilePath == "" {
+		return "❌ Не удалось определить путь к медиафайлу"
+	}
+
+	if !i.appLauncher.OpenMedia(classification.FilePath) {
+		return fmt.Sprintf("❌ Не удалось открыть файл: %s", classification.FilePath)
+	}
+
+	return fmt.Sprintf("✅ Открыт медиафайл: %s", classification.FilePath)
+}
+
+func (i *Interpreter) handleCurlRequest(classification Classification, inputStr string) string {
+	if classification.URL == "" {
+		return "❌ Не удалось определить URL для curl запроса"
+	}
+
+	result, err := i.curlClient.Execute(classification.URL, nil)
 	if err != nil {
-		return fmt.Sprintf("Ошибка получения AI ответа: %v", err)
+		return fmt.Sprintf("❌ Ошибка curl запроса: %v", err)
 	}
 
-	return response
+	result = limitOutput(result, MaxSummaryLength)
+	summary := i.getContentSummary(inputStr, result)
+
+	if summary != "" {
+		return fmt.Sprintf("✅ Результат запроса:\n%s\n\nСводка:\n%s", result, summary)
+	}
+
+	return fmt.Sprintf("✅ Результат запроса:\n%s", result)
 }
 
-// evaluateExpression - вычисление математического выражения
-func (i *Interpreter) evaluateExpression(expression string) (interface{}, error) {
-	// Замена переменных на их значения
-	exprWithVars, err := i.substituteVariables(expression)
+func (i *Interpreter) handleCallFromClassification(inputStr string) string {
+	match, target, callType := i.parseCallCommand(inputStr)
+	if !match {
+		return "❌ Не удалось распознать команду звонка. Используйте: call <username> [video|audio]"
+	}
+
+	result, err := i.handleCall(target, callType)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка подстановки переменных: %v", err)
+		return fmt.Sprintf("❌ Ошибка при инициации звонка: %v", err)
 	}
 
-	result, err := i.evaluator.Evaluate(exprWithVars)
+	return result
+}
+
+// ============================================================================
+// ОБРАБОТКА ЗВОНКОВ
+// ============================================================================
+
+func (i *Interpreter) handleCall(target, callType string) (string, error) {
+	if err := i.validateCallPreconditions(target); err != nil {
+		return "", err
+	}
+
+	session, err := i.webrtcServer.InitiateCall(i.currentUser, target, callType)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка вычисления: %v", err)
+		return "", fmt.Errorf("ошибка при инициации звонка: %v", err)
 	}
 
-	return result, nil
+	i.history.AddCommand(fmt.Sprintf("позвонить %s %s", target, callType))
+	i.saveState()
+
+	callTypeDisplay := strings.ToUpper(callType[:1]) + callType[1:]
+	return fmt.Sprintf("✅ %s звонок пользователю '%s' инициирован.\n"+
+		"Откройте WebRTC интерфейс по адресу: http://localhost:8000/webrtc/\n"+
+		"Сессия: %v", callTypeDisplay, target, session), nil
 }
 
-// substituteVariables - подстановка значений переменных в выражение
-func (i *Interpreter) substituteVariables(expression string) (string, error) {
-	// Паттерн для поиска переменных: {var} или plain var
-	pattern := regexp.MustCompile(`\{([a-zA-Z_][a-zA-Z0-9_]*)\}|([a-zA-Z_][a-zA-Z0-9_]*)`)
+func (i *Interpreter) validateCallPreconditions(target string) error {
+	if i.webrtcServer == nil {
+		return fmt.Errorf("WebRTC сервер не инициализирован")
+	}
 
-	result := pattern.ReplaceAllStringFunc(expression, func(match string) string {
-		// Извлекаем имя переменной
-		var varName string
-		if strings.HasPrefix(match, "{") && strings.HasSuffix(match, "}") {
-			varName = match[1 : len(match)-1]
-		} else {
-			varName = match
-		}
+	if i.currentUser == "" {
+		return fmt.Errorf("не установлен текущий пользователь. Используйте команду: login <username>")
+	}
 
-		// Проверяем, является ли это частью большего слова
-		start := strings.Index(expression, match)
-		if start > 0 {
-			prevChar := expression[start-1]
-			if isAlphaNumeric(prevChar) {
-				return match // Возвращаем как есть, если это часть слова
+	if target == "" {
+		return fmt.Errorf("не указан адресат звонка")
+	}
+
+	if target == i.currentUser {
+		return fmt.Errorf("невозможно позвонить самому себе")
+	}
+
+	return nil
+}
+
+func (i *Interpreter) HandleWebRTCLogin(inputStr string) (string, error) {
+	username, err := i.parseLoginCommand(inputStr)
+	if err != nil {
+		return "", err
+	}
+
+	if len(username) < MinUsernameLength {
+		return "", fmt.Errorf("имя пользователя должно быть минимум %d символа", MinUsernameLength)
+	}
+
+	i.currentUser = username
+	i.history.AddCommand(fmt.Sprintf("login %s", username))
+	i.saveState()
+
+	return fmt.Sprintf("✅ Вы вошли как '%s'. Теперь вы можете совершать звонки.", username), nil
+}
+
+// ============================================================================
+// ПАРСИНГ КОМАНД
+// ============================================================================
+
+func (i *Interpreter) parseCallCommand(inputStr string) (bool, string, string) {
+	trimmed := strings.ToLower(strings.TrimSpace(inputStr))
+
+	patterns := []struct {
+		pattern  string
+		callType string
+	}{
+		{`^позвонить\s+([a-zA-Z0-9_]+)(?:\s+(video|audio))?$`, "video"},
+		{`^call\s+([a-zA-Z0-9_]+)(?:\s+(video|audio))?$`, "video"},
+		{`^видеозвонок\s+([a-zA-Z0-9_]+)$`, "video"},
+		{`^аудиозвонок\s+([a-zA-Z0-9_]+)$`, "audio"},
+		{`^video\s+call\s+([a-zA-Z0-9_]+)$`, "video"},
+		{`^audio\s+call\s+([a-zA-Z0-9_]+)$`, "audio"},
+	}
+
+	for _, p := range patterns {
+		re := regexp.MustCompile(p.pattern)
+		matches := re.FindStringSubmatch(trimmed)
+
+		if len(matches) >= 2 {
+			target := matches[1]
+			callType := p.callType
+
+			// Переопределение типа звонка, если указан явно
+			if len(matches) == 3 && matches[2] != "" {
+				callType = matches[2]
 			}
-		}
-		if start+len(match) < len(expression) {
-			nextChar := expression[start+len(match)]
-			if isAlphaNumeric(nextChar) {
-				return match // Возвращаем как есть, если это часть слова
-			}
-		}
 
-		// Получаем значение переменной
-		value := i.variables.GetVariable(varName)
-		if value == nil {
-			return match // Оставляем как есть, если переменная не найдена
+			return true, target, callType
 		}
+	}
 
-		// Конвертируем значение в строку
-		switch v := value.(type) {
-		case float64:
-			return strconv.FormatFloat(v, 'f', -1, 64)
-		case int:
-			return strconv.Itoa(v)
-		case string:
-			return v
-		default:
-			return fmt.Sprintf("%v", v)
-		}
-	})
-
-	return result, nil
+	return false, "", ""
 }
 
-func (i *Interpreter) GetVariables() map[string]interface{} {
-	return i.variables.GetVariables()
+func (i *Interpreter) parseLoginCommand(inputStr string) (string, error) {
+	trimmed := strings.TrimSpace(strings.ToLower(inputStr))
+	loginPattern := regexp.MustCompile(`^(login|войти)\s+([a-zA-Z0-9_]+)$`)
+	matches := loginPattern.FindStringSubmatch(trimmed)
+
+	if len(matches) != 3 {
+		return "", fmt.Errorf("неверный формат команды. Используйте: login <username> или войти <username>")
+	}
+
+	return matches[2], nil
 }
 
-// isAlphaNumeric - проверка, является ли символ буквенно-цифровым
-func isAlphaNumeric(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'
+func (i *Interpreter) parseAssignment(inputStr string) (bool, string, string) {
+	re := regexp.MustCompile(`^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$`)
+	matches := re.FindStringSubmatch(inputStr)
+
+	if len(matches) == 3 {
+		return true, matches[1], matches[2]
+	}
+
+	return false, "", ""
 }
 
-// Дополнение к Interpreter для обработки curl команд
+func (i *Interpreter) isLoginCommand(inputStr string) bool {
+	trimmed := strings.ToLower(strings.TrimSpace(inputStr))
+	loginPattern := regexp.MustCompile(`^(login|войти)\s+`)
+	return loginPattern.MatchString(trimmed)
+}
+
+// ============================================================================
+// ОПРЕДЕЛЕНИЕ ТИПА ВВОДА
+// ============================================================================
+
+func (i *Interpreter) isFreeFormInput(inputStr string) bool {
+	trimmed := strings.TrimSpace(inputStr)
+
+	// Проверки на специальные команды
+	if i.isSpecialCommand(trimmed) {
+		return false
+	}
+
+	// Проверка на математическое выражение
+	if i.isMathExpression(trimmed) {
+		return false
+	}
+
+	// Проверка на присваивание переменной
+	if i.isVariableAssignment(trimmed) {
+		return false
+	}
+
+	// Проверка на переменную или выражение с переменными
+	if i.isVariableOrExpression(trimmed) {
+		return false
+	}
+
+	return true
+}
+
+func (i *Interpreter) isSpecialCommand(trimmed string) bool {
+	// Проверка на команды звонков
+	if match, _, _ := i.parseCallCommand(trimmed); match {
+		return true
+	}
+
+	// Проверка на команду логина
+	if i.isLoginCommand(trimmed) {
+		return true
+	}
+
+	// Проверка на команды истории
+	if trimmed == "history" || trimmed == "history clear" || strings.HasPrefix(trimmed, "history search") {
+		return true
+	}
+
+	return false
+}
+
+func (i *Interpreter) isMathExpression(trimmed string) bool {
+	mathPattern := regexp.MustCompile(`^[\d\s+\-*/().^%]+$`)
+	cleanInput := strings.ReplaceAll(trimmed, " ", "")
+	return mathPattern.MatchString(cleanInput)
+}
+
+func (i *Interpreter) isVariableAssignment(trimmed string) bool {
+	if !strings.Contains(trimmed, "=") {
+		return false
+	}
+
+	assignmentPattern := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*\s*=`)
+	return assignmentPattern.MatchString(trimmed)
+}
+
+func (i *Interpreter) isVariableOrExpression(trimmed string) bool {
+	// Простая переменная
+	varPattern := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	if varPattern.MatchString(trimmed) {
+		return true
+	}
+
+	// Выражение с переменными
+	exprWithVarsPattern := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*|\d+)(\s*[\+\-\*/\^%]\s*([a-zA-Z_][a-zA-Z0-9_]*|\d+))*$`)
+	cleanExpr := strings.ReplaceAll(trimmed, " ", "")
+	return exprWithVarsPattern.MatchString(cleanExpr)
+}
+
+// ============================================================================
+// ОБРАБОТКА CURL
+// ============================================================================
+
 func (i *Interpreter) handleCurl(urlArgs string) string {
 	if strings.TrimSpace(urlArgs) == "" {
 		return "Использование: curl <url> [-H заголовок] [-X метод] [-d данные]"
 	}
 
-	// Парсинг аргументов curl
-	parts := strings.Fields(urlArgs)
-	if len(parts) == 0 {
-		return "Ошибка: не указан URL"
+	url, method, headers, body, help := i.parseCurlArgs(urlArgs)
+
+	if help {
+		return i.getCurlHelp()
 	}
 
-	url := parts[0]
-	method := "GET"
-	headers := make(map[string]string)
-	var body string
+	if url == "" {
+		return "❌ Ошибка: не указан URL"
+	}
 
-	// Обработка дополнительных аргументов
+	result, err := i.executeCurlRequest(method, url, headers, body)
+	if err != nil {
+		return fmt.Sprintf("❌ Ошибка curl: %v", err)
+	}
+
+	return limitOutput(result, MaxOutputLength)
+}
+
+func (i *Interpreter) parseCurlArgs(urlArgs string) (url, method string, headers map[string]string, body string, help bool) {
+	parts := strings.Fields(urlArgs)
+	if len(parts) == 0 {
+		return
+	}
+
+	url = parts[0]
+	method = "GET"
+	headers = make(map[string]string)
+
 	for j := 1; j < len(parts); j++ {
 		switch parts[j] {
 		case "-H":
 			if j+1 < len(parts) {
-				header := parts[j+1]
-				if idx := strings.Index(header, ":"); idx != -1 {
-					key := strings.TrimSpace(header[:idx])
-					value := strings.TrimSpace(header[idx+1:])
+				if key, value, ok := parseHeader(parts[j+1]); ok {
 					headers[key] = value
 				}
 				j++
@@ -391,31 +530,219 @@ func (i *Interpreter) handleCurl(urlArgs string) string {
 				j++
 			}
 		case "--help", "-h":
-			return `Доступные опции curl:
+			help = true
+			return
+		}
+	}
+
+	return
+}
+
+func (i *Interpreter) executeCurlRequest(method, url string, headers map[string]string, body string) (string, error) {
+	if method == "GET" && body == "" {
+		return i.curlClient.Execute(url, headers)
+	}
+	return i.curlClient.ExecuteWithMethod(method, url, headers, body)
+}
+
+func (i *Interpreter) getCurlHelp() string {
+	return `Доступные опции curl:
   -H заголовок   Установить заголовок (например: "Content-Type: application/json")
   -X метод       Указать HTTP метод (GET, POST, PUT, DELETE)
   -d данные      Тело запроса для POST/PUT
   --help         Показать эту справку`
+}
+
+// ============================================================================
+// ВЫЧИСЛЕНИЯ И ПЕРЕМЕННЫЕ
+// ============================================================================
+
+func (i *Interpreter) evaluateExpression(expression string) (interface{}, error) {
+	exprWithVars, err := i.substituteVariables(expression)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка подстановки переменных: %v", err)
+	}
+
+	result, err := i.evaluator.Evaluate(exprWithVars)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка вычисления: %v", err)
+	}
+
+	return result, nil
+}
+
+func (i *Interpreter) substituteVariables(expression string) (string, error) {
+	pattern := regexp.MustCompile(`\{([a-zA-Z_][a-zA-Z0-9_]*)\}|([a-zA-Z_][a-zA-Z0-9_]*)`)
+	matches := pattern.FindAllStringSubmatchIndex(expression, -1)
+
+	if len(matches) == 0 {
+		return expression, nil
+	}
+
+	var result strings.Builder
+	lastIndex := 0
+
+	for _, m := range matches {
+		start, end := m[0], m[1]
+
+		// Добавляем текст до совпадения
+		if lastIndex < start {
+			result.WriteString(expression[lastIndex:start])
+		}
+
+		varName := extractVariableName(expression, m)
+
+		// Проверка, является ли совпадение частью слова
+		if isPartOfWord(expression, start, end) || varName == "" {
+			result.WriteString(expression[start:end])
+			lastIndex = end
+			continue
+		}
+
+		// Подстановка значения переменной
+		value := i.variables.GetVariable(varName)
+		if value == nil {
+			result.WriteString(expression[start:end])
+		} else {
+			result.WriteString(formatVariableValue(value))
+		}
+
+		lastIndex = end
+	}
+
+	if lastIndex < len(expression) {
+		result.WriteString(expression[lastIndex:])
+	}
+
+	return result.String(), nil
+}
+
+// ============================================================================
+// ПУБЛИЧНЫЕ МЕТОДЫ
+// ============================================================================
+
+func (i *Interpreter) ClearHistory() int {
+	count := i.history.GetHistoryCount()
+	i.history.ClearHistory()
+	i.saveState()
+	return count
+}
+
+func (i *Interpreter) GetHistoryCommands(limit int) []string {
+	history := i.history.GetDetailedHistory(limit)
+	commands := make([]string, len(history))
+	for idx, entry := range history {
+		commands[idx] = entry.Command
+	}
+	return commands
+}
+
+func (i *Interpreter) GetVariables() map[string]interface{} {
+	return i.variables.GetVariables()
+}
+
+func (i *Interpreter) SetWebRTCServer(server WebRTCServer) {
+	i.webrtcServer = server
+}
+
+func (i *Interpreter) SetCurrentUser(username string) {
+	i.currentUser = username
+}
+
+func (i *Interpreter) GetCurrentUser() string {
+	return i.currentUser
+}
+
+// ============================================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================================================
+
+func getStringField(data interface{}, fieldName string) string {
+	if m, ok := data.(map[string]interface{}); ok {
+		if val, exists := m[fieldName]; exists {
+			if strVal, ok := val.(string); ok {
+				return strVal
+			}
 		}
 	}
 
-	var result string
-	var err error
+	// Попытка использовать рефлексию для структур
+	// (если ClassifyRequest возвращает структуру)
+	// Здесь можно добавить reflection при необходимости
 
-	if method == "GET" && body == "" {
-		result, err = i.curlClient.Execute(url, headers)
-	} else {
-		result, err = i.curlClient.ExecuteWithMethod(method, url, headers, body)
-	}
+	return ""
+}
 
+func (i *Interpreter) getAIResponse(inputStr string) string {
+	response, err := i.deepseekClient.GetAIResponse(inputStr)
 	if err != nil {
-		return fmt.Sprintf("Ошибка curl: %v", err)
+		return fmt.Sprintf("❌ Ошибка получения AI ответа: %v", err)
+	}
+	return response
+}
+
+func (i *Interpreter) getContentSummary(inputStr, result string) string {
+	summary, err := i.deepseekClient.GetContentSummary(inputStr, result)
+	if err != nil {
+		return ""
+	}
+	return summary
+}
+
+func limitOutput(output string, maxLen int) string {
+	if len(output) > maxLen {
+		return output[:maxLen] + "\n... (вывод ограничен)"
+	}
+	return output
+}
+
+func parseHeader(header string) (key, value string, ok bool) {
+	idx := strings.Index(header, ":")
+	if idx == -1 {
+		return "", "", false
 	}
 
-	// Ограничиваем вывод для очень длинных ответов
-	if len(result) > 100 {
-		result = result[:100] + "\n\n... (вывод ограничен 1000 символов)"
-	}
+	key = strings.TrimSpace(header[:idx])
+	value = strings.TrimSpace(header[idx+1:])
+	return key, value, true
+}
 
-	return result
+func extractVariableName(expression string, matchIndices []int) string {
+	// matchIndices: [start, end, group1_start, group1_end, group2_start, group2_end]
+	if len(matchIndices) >= 4 && matchIndices[2] != -1 {
+		// Совпадение с фигурными скобками {var}
+		return expression[matchIndices[2]:matchIndices[3]]
+	}
+	if len(matchIndices) >= 6 && matchIndices[4] != -1 {
+		// Совпадение без скобок var
+		return expression[matchIndices[4]:matchIndices[5]]
+	}
+	return ""
+}
+
+func isPartOfWord(expression string, start, end int) bool {
+	if start > 0 && isAlphaNumeric(expression[start-1]) {
+		return true
+	}
+	if end < len(expression) && isAlphaNumeric(expression[end]) {
+		return true
+	}
+	return false
+}
+
+func isAlphaNumeric(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'
+}
+
+func formatVariableValue(value interface{}) string {
+	switch v := value.(type) {
+	case float64:
+		return fmt.Sprintf("%v", v)
+	case int:
+		return fmt.Sprintf("%d", v)
+	case string:
+		return v
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }

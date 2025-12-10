@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Калькулятор-интерпретатор</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <h1 class="title">Калькулятор-интерпретатор</h1>
+      <div class="controls">
+        <button class="pill btn-ghost" id="btn-webrtc" title="Открыть WebRTC видеозвонки">
+          📞 WebRTC
+        </button>
+        <button class="pill btn-ghost" id="btn-vars">Переменные</button>
+        <button class="pill btn-ghost" id="btn-history">История</button>
+        <button class="pill btn-ghost" id="btn-clear">Очистить</button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div id="output" class="output" aria-live="polite">
+        Добро пожаловать. Введите команду.<br>
+        <small style="color: #8a8d98; margin-top: 8px; display: block;">
+          💡 Новые команды:<br>
+          • <code>login имя_пользователя</code> - войти в WebRTC<br>
+          • <code>позвонить имя_пользователя</code> - видеозвонок<br>
+          • <code>позвонить имя_пользователя audio</code> - аудиозвонок
+        </small>
+      </div>
+
+      <form id="promptForm" class="prompt" autocomplete="off">
+        <div class="prompt-left">
+          <span class="prompt-label">calc&gt;</span>
+        </div>
+        <div class="prompt-center">
+          <input id="input" name="input" type="text" spellcheck="false" placeholder="Введите команду..." />
+        </div>
+        <div class="prompt-right">
+          <button type="submit" class="btn-warp" id="btn-send">Выполнить</button>
+        </div>
+      </form>
+    </section>
+
+    <aside id="cards" class="cards hidden" aria-hidden="true">
+      <div class="cards-inner" id="cards-inner"></div>
+      <div class="cards-footer">
+        <button class="pill" id="close-cards">Закрыть</button>
+      </div>
+    </aside>
+
+    <audio id="sfx-success" src="" hidden></audio>
+    <audio id="sfx-error" src="" hidden></audio>
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('btn-webrtc').addEventListener('click', function() {
+      window.open('http://localhost:8000/webrtc/', '_blank');
+    });
+  </script>
+</body>
+</html>

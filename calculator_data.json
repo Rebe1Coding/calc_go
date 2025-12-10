@@ -1,6 +1,7 @@
 {
   "variables": {
-    "x": 10
+    "x": 111,
+    "y": 7
   },
   "history": [
     {
@@ -142,6 +143,281 @@
       "command": "5+4",
       "timestamp": "2025-10-21T01:26:24+03:00",
       "id": 28
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:09+03:00",
+      "id": 29
+    },
+    {
+      "command": "exite",
+      "timestamp": "2025-11-14T18:52:16+03:00",
+      "id": 30
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:17+03:00",
+      "id": 31
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:18+03:00",
+      "id": 32
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:19+03:00",
+      "id": 33
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:19+03:00",
+      "id": 34
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:19+03:00",
+      "id": 35
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:19+03:00",
+      "id": 36
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:19+03:00",
+      "id": 37
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:20+03:00",
+      "id": 38
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:20+03:00",
+      "id": 39
+    },
+    {
+      "command": "qq",
+      "timestamp": "2025-11-14T18:52:20+03:00",
+      "id": 40
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:20+03:00",
+      "id": 41
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:21+03:00",
+      "id": 42
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:21+03:00",
+      "id": 43
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:21+03:00",
+      "id": 44
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:21+03:00",
+      "id": 45
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:21+03:00",
+      "id": 46
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:21+03:00",
+      "id": 47
+    },
+    {
+      "command": "5+5",
+      "timestamp": "2025-11-14T19:02:14+03:00",
+      "id": 48
+    },
+    {
+      "command": "11",
+      "timestamp": "2025-11-14T19:02:17+03:00",
+      "id": 49
+    },
+    {
+      "command": "3+3+3",
+      "timestamp": "2025-11-14T19:02:47+03:00",
+      "id": 50
+    },
+    {
+      "command": "x=10",
+      "timestamp": "2025-11-14T19:02:54+03:00",
+      "id": 51
+    },
+    {
+      "command": "x=111",
+      "timestamp": "2025-11-14T19:23:29+03:00",
+      "id": 52
+    },
+    {
+      "command": "5+5",
+      "timestamp": "2025-11-14T19:44:00+03:00",
+      "id": 53
+    },
+    {
+      "command": "10+4",
+      "timestamp": "2025-11-14T19:44:11+03:00",
+      "id": 54
+    },
+    {
+      "command": "y=7",
+      "timestamp": "2025-11-14T19:44:30+03:00",
+      "id": 55
+    },
+    {
+      "command": "5+5",
+      "timestamp": "2025-11-14T20:20:54+03:00",
+      "id": 56
+    },
+    {
+      "command": "9-7",
+      "timestamp": "2025-11-14T20:28:27+03:00",
+      "id": 57
+    },
+    {
+      "command": "2+2",
+      "timestamp": "2025-11-14T20:28:50+03:00",
+      "id": 58
+    },
+    {
+      "command": "2+2",
+      "timestamp": "2025-11-14T20:28:54+03:00",
+      "id": 59
+    },
+    {
+      "command": "2+2",
+      "timestamp": "2025-11-14T20:28:58+03:00",
+      "id": 60
+    },
+    {
+      "command": "1+1",
+      "timestamp": "2025-11-14T20:29:04+03:00",
+      "id": 61
+    },
+    {
+      "command": "1+1",
+      "timestamp": "2025-11-14T20:29:13+03:00",
+      "id": 62
+    },
+    {
+      "command": "x = https://jsonplaceholder.typicode.com/",
+      "timestamp": "2025-11-14T20:41:05+03:00",
+      "id": 63
+    },
+    {
+      "command": "x = \"https://jsonplaceholder.typicode.com/\"",
+      "timestamp": "2025-11-14T20:41:20+03:00",
+      "id": 64
+    },
+    {
+      "command": "войти генадий",
+      "timestamp": "2025-12-05T20:36:01+03:00",
+      "id": 65
+    },
+    {
+      "command": "login alice",
+      "timestamp": "2025-12-05T20:36:39+03:00",
+      "id": 66
+    },
+    {
+      "command": "войти генадий",
+      "timestamp": "2025-12-05T20:53:14+03:00",
+      "id": 67
+    },
+    {
+      "command": "войти геннадий ",
+      "timestamp": "2025-12-05T21:17:21+03:00",
+      "id": 68
+    },
+    {
+      "command": "login alice",
+      "timestamp": "2025-12-05T21:32:57+03:00",
+      "id": 69
+    },
+    {
+      "command": "login lol",
+      "timestamp": "2025-12-05T21:59:14+03:00",
+      "id": 70
+    },
+    {
+      "command": "login antochick ",
+      "timestamp": "2025-12-05T22:05:54+03:00",
+      "id": 71
+    },
+    {
+      "command": "login lol",
+      "timestamp": "2025-12-10T17:13:44+03:00",
+      "id": 72
+    },
+    {
+      "command": "войти antonchuk",
+      "timestamp": "2025-12-10T17:15:23+03:00",
+      "id": 73
+    },
+    {
+      "command": "login <lol>",
+      "timestamp": "2025-12-10T17:19:16+03:00",
+      "id": 74
+    },
+    {
+      "command": "login kk",
+      "timestamp": "2025-12-10T17:19:26+03:00",
+      "id": 75
+    },
+    {
+      "command": "login lol",
+      "timestamp": "2025-12-10T17:28:24+03:00",
+      "id": 76
+    },
+    {
+      "command": "позвонить kek audio",
+      "timestamp": "2025-12-10T17:32:36+03:00",
+      "id": 77
+    },
+    {
+      "command": "login kek",
+      "timestamp": "2025-12-10T17:35:34+03:00",
+      "id": 78
+    },
+    {
+      "command": "login suck",
+      "timestamp": "2025-12-10T17:35:43+03:00",
+      "id": 79
+    },
+    {
+      "command": "login hhh",
+      "timestamp": "2025-12-10T17:36:03+03:00",
+      "id": 80
+    },
+    {
+      "command": "login lol",
+      "timestamp": "2025-12-10T17:36:16+03:00",
+      "id": 81
+    },
+    {
+      "command": "login lol",
+      "timestamp": "2025-12-10T17:36:26+03:00",
+      "id": 82
+    },
+    {
+      "command": "login kek",
+      "timestamp": "2025-12-10T17:36:32+03:00",
+      "id": 83
     }
   ]
 }

@@ -18,7 +18,6 @@ func NewHistoryManager(persistence *PersistenceManager) *HistoryManager {
 	}
 }
 
-
 // AddCommand - добавление команды в историю с сохранением в JSON
 func (hm *HistoryManager) AddCommand(command string) {
 	data := hm.persistence.LoadData()
@@ -38,7 +37,7 @@ func (hm *HistoryManager) AddCommand(command string) {
 
 	data.History = append(data.History, commandEntry)
 
-	// Ограничиваем размер истории
+	
 	if len(data.History) > hm.maxHistory {
 		data.History = data.History[len(data.History)-hm.maxHistory:]
 	}
