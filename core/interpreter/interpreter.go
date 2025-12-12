@@ -8,7 +8,6 @@ import (
 	"app/core/history"
 	"app/core/persistence"
 	"app/core/variables"
-	"app/core/webrtc"
 	"fmt"
 	"regexp"
 	"strings"
@@ -30,10 +29,6 @@ const (
 // ТИПЫ И ИНТЕРФЕЙСЫ
 // ============================================================================
 
-type WebRTCServer interface {
-	InitiateCall(caller, target, callType string) (*webrtc.Session, error)
-}
-
 // Classification представляет результат классификации запроса
 type Classification struct {
 	Type     string
@@ -49,8 +44,6 @@ type Interpreter struct {
 	curlClient     *curl.CurlClient
 	deepseekClient *agent.DeepSeekClient
 	appLauncher    *applauncher.AppLauncher
-	webrtcServer   WebRTCServer
-	currentUser    string
 }
 
 // ============================================================================
@@ -117,15 +110,6 @@ func (i *Interpreter) saveState() {
 // ============================================================================
 
 func (i *Interpreter) Execute(inputStr string) (interface{}, error) {
-	// Обработка команды звонка
-	if match, target, callType := i.parseCallCommand(inputStr); match {
-		return i.handleCall(target, callType)
-	}
-
-	// Обработка команды логина
-	if i.isLoginCommand(inputStr) {
-		return i.HandleWebRTCLogin(inputStr)
-	}
 
 	// Обработка curl команд
 	if strings.HasPrefix(strings.TrimSpace(inputStr), "curl ") {
@@ -166,7 +150,7 @@ func (i *Interpreter) handleAssignment(varName, expression string) (interface{},
 
 func (i *Interpreter) handleFreeFormInput(inputStr string) string {
 	classification := i.classifyAndParseRequest(inputStr)
-
+	fmt.Printf("DEBUG: classification.Type = '%s', len=%d\n", classification.Type, len(classification.Type))
 	switch classification.Type {
 	case "browser":
 		return i.handleBrowser(classification, inputStr)
@@ -174,14 +158,6 @@ func (i *Interpreter) handleFreeFormInput(inputStr string) string {
 		return i.handleMedia(classification)
 	case "curl":
 		return i.handleCurlRequest(classification, inputStr)
-	case "call":
-		return i.handleCallFromClassification(inputStr)
-	case "login":
-		result, err := i.HandleWebRTCLogin(inputStr)
-		if err != nil {
-			return fmt.Sprintf("❌ %v", err)
-		}
-		return result
 	default:
 		return i.getAIResponse(inputStr)
 	}
@@ -193,11 +169,10 @@ func (i *Interpreter) classifyAndParseRequest(inputStr string) Classification {
 	fmt.Printf("Классификация: type=%s, url=%s, file_path=%s\n",
 		rawClassification.Type, rawClassification.URL, rawClassification.FilePath)
 
-	// Безопасное преобразование в структуру Classification
 	return Classification{
-		Type:     getStringField(rawClassification, "Type"),
-		URL:      getStringField(rawClassification, "URL"),
-		FilePath: getStringField(rawClassification, "FilePath"),
+		Type:     rawClassification.Type,
+		URL:      rawClassification.URL,
+		FilePath: rawClassification.FilePath,
 	}
 }
 
@@ -252,80 +227,6 @@ func (i *Interpreter) handleCurlRequest(classification Classification, inputStr 
 	}
 
 	return fmt.Sprintf("✅ Результат запроса:\n%s", result)
-}
-
-func (i *Interpreter) handleCallFromClassification(inputStr string) string {
-	match, target, callType := i.parseCallCommand(inputStr)
-	if !match {
-		return "❌ Не удалось распознать команду звонка. Используйте: call <username> [video|audio]"
-	}
-
-	result, err := i.handleCall(target, callType)
-	if err != nil {
-		return fmt.Sprintf("❌ Ошибка при инициации звонка: %v", err)
-	}
-
-	return result
-}
-
-// ============================================================================
-// ОБРАБОТКА ЗВОНКОВ
-// ============================================================================
-
-func (i *Interpreter) handleCall(target, callType string) (string, error) {
-	if err := i.validateCallPreconditions(target); err != nil {
-		return "", err
-	}
-
-	session, err := i.webrtcServer.InitiateCall(i.currentUser, target, callType)
-	if err != nil {
-		return "", fmt.Errorf("ошибка при инициации звонка: %v", err)
-	}
-
-	i.history.AddCommand(fmt.Sprintf("позвонить %s %s", target, callType))
-	i.saveState()
-
-	callTypeDisplay := strings.ToUpper(callType[:1]) + callType[1:]
-	return fmt.Sprintf("✅ %s звонок пользователю '%s' инициирован.\n"+
-		"Откройте WebRTC интерфейс по адресу: http://localhost:8000/webrtc/\n"+
-		"Сессия: %v", callTypeDisplay, target, session), nil
-}
-
-func (i *Interpreter) validateCallPreconditions(target string) error {
-	if i.webrtcServer == nil {
-		return fmt.Errorf("WebRTC сервер не инициализирован")
-	}
-
-	if i.currentUser == "" {
-		return fmt.Errorf("не установлен текущий пользователь. Используйте команду: login <username>")
-	}
-
-	if target == "" {
-		return fmt.Errorf("не указан адресат звонка")
-	}
-
-	if target == i.currentUser {
-		return fmt.Errorf("невозможно позвонить самому себе")
-	}
-
-	return nil
-}
-
-func (i *Interpreter) HandleWebRTCLogin(inputStr string) (string, error) {
-	username, err := i.parseLoginCommand(inputStr)
-	if err != nil {
-		return "", err
-	}
-
-	if len(username) < MinUsernameLength {
-		return "", fmt.Errorf("имя пользователя должно быть минимум %d символа", MinUsernameLength)
-	}
-
-	i.currentUser = username
-	i.history.AddCommand(fmt.Sprintf("login %s", username))
-	i.saveState()
-
-	return fmt.Sprintf("✅ Вы вошли как '%s'. Теперь вы можете совершать звонки.", username), nil
 }
 
 // ============================================================================
@@ -639,18 +540,6 @@ func (i *Interpreter) GetHistoryCommands(limit int) []string {
 
 func (i *Interpreter) GetVariables() map[string]interface{} {
 	return i.variables.GetVariables()
-}
-
-func (i *Interpreter) SetWebRTCServer(server WebRTCServer) {
-	i.webrtcServer = server
-}
-
-func (i *Interpreter) SetCurrentUser(username string) {
-	i.currentUser = username
-}
-
-func (i *Interpreter) GetCurrentUser() string {
-	return i.currentUser
 }
 
 // ============================================================================

@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -9,27 +10,32 @@ import (
 )
 
 type Evaluator struct {
-	operators map[string]func(float64, float64) float64
+	operators map[string]func(float64, float64) (float64, error)
 }
 
 func NewEvaluator() *Evaluator {
 	calc := &Evaluator{
-		operators: make(map[string]func(float64, float64) float64),
+		operators: make(map[string]func(float64, float64) (float64, error)),
 	}
 
 	// Инициализация операторов
-	calc.operators["+"] = func(a, b float64) float64 { return a + b }
-	calc.operators["-"] = func(a, b float64) float64 { return a - b }
-	calc.operators["*"] = func(a, b float64) float64 { return a * b }
-	calc.operators["/"] = func(a, b float64) float64 {
+	calc.operators["+"] = func(a, b float64) (float64, error) { return a + b, nil }
+	calc.operators["-"] = func(a, b float64) (float64, error) { return a - b, nil }
+	calc.operators["*"] = func(a, b float64) (float64, error) { return a * b, nil }
+	calc.operators["/"] = func(a, b float64) (float64, error) {
 		if b == 0 {
-			panic("деление на ноль")
+			return 0, errors.New("деление на ноль")
 		}
-		return a / b
+		return a / b, nil
 	}
-	calc.operators["**"] = func(a, b float64) float64 { return math.Pow(a, b) }
-	calc.operators["^"] = func(a, b float64) float64 { return math.Pow(a, b) }
-	calc.operators["%"] = func(a, b float64) float64 { return math.Mod(a, b) }
+	calc.operators["**"] = func(a, b float64) (float64, error) { return math.Pow(a, b), nil }
+	calc.operators["^"] = func(a, b float64) (float64, error) { return math.Pow(a, b), nil }
+	calc.operators["%"] = func(a, b float64) (float64, error) {
+		if b == 0 {
+			return 0, errors.New("деление по модулю на ноль")
+		}
+		return math.Mod(a, b), nil
+	}
 
 	return calc
 }
@@ -156,7 +162,13 @@ func (c *Evaluator) evaluateRPN(rpn []string) (float64, error) {
 			b := stack[len(stack)-1]
 			a := stack[len(stack)-2]
 			stack = stack[:len(stack)-2]
-			result := op(a, b)
+
+			// Вызываем оператор и получаем результат ИЛИ ошибку
+			result, err := op(a, b)
+			if err != nil {
+				return 0, err // например: "деление на ноль"
+			}
+
 			stack = append(stack, result)
 		} else {
 			// Пробуем парсить число
