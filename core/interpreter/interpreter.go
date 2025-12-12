@@ -150,7 +150,7 @@ func (i *Interpreter) handleAssignment(varName, expression string) (interface{},
 
 func (i *Interpreter) handleFreeFormInput(inputStr string) string {
 	classification := i.classifyAndParseRequest(inputStr)
-
+	fmt.Printf("DEBUG: classification.Type = '%s', len=%d\n", classification.Type, len(classification.Type))
 	switch classification.Type {
 	case "browser":
 		return i.handleBrowser(classification, inputStr)
@@ -169,11 +169,10 @@ func (i *Interpreter) classifyAndParseRequest(inputStr string) Classification {
 	fmt.Printf("Классификация: type=%s, url=%s, file_path=%s\n",
 		rawClassification.Type, rawClassification.URL, rawClassification.FilePath)
 
-	// Безопасное преобразование в структуру Classification
 	return Classification{
-		Type:     getStringField(rawClassification, "Type"),
-		URL:      getStringField(rawClassification, "URL"),
-		FilePath: getStringField(rawClassification, "FilePath"),
+		Type:     rawClassification.Type,
+		URL:      rawClassification.URL,
+		FilePath: rawClassification.FilePath,
 	}
 }
 

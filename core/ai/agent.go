@@ -118,9 +118,9 @@ func (d *DeepSeekClient) ClassifyRequest(userInput string) *ClassificationResult
 - curl: запрос на получение данных по URL, извлечи URL
 - call: звонок через WebRTC, извлеки тип звонка (audio/video) и цель (номер или имя) Пример команды: "позвони антончик аудио" или "call username video"
 - general: общий запрос
-- login: запрос на вход в систему пример
 
-Ответ в формате JSON: {"type": "browser|media|curl|general|call|login", "url": "...", "file_path": "...", login_name: "...", call_target, "call_type": "..."}`
+Ответ в формате JSON: {"type": "browser|media|curl|general|call|login", "url": "...", "file_path": "..."}
+Ответ должен содержать ТОЛЬКО валидный JSON без каких-либо пояснений, комментариев или Markdown-оберток.`
 
 	response, err := d.makeDeepSeekRequest(systemPrompt, userInput)
 	if err != nil {

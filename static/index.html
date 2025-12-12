@@ -821,8 +821,14 @@ body{
 
     // WebRTC Functions
     async function webrtcLogin(name) {
+      
+      username = name;
+
+      if (username && ws && ws.readyState === WebSocket.OPEN) {
+        appendLine('❌ Уже выполнен вход.');
+        return;
+      }
       try {
-        username = name;
         ws = new WebSocket(serverUrl);
         
         ws.onopen = () => {
