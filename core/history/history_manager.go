@@ -37,7 +37,6 @@ func (hm *HistoryManager) AddCommand(command string) {
 
 	data.History = append(data.History, commandEntry)
 
-	
 	if len(data.History) > hm.maxHistory {
 		data.History = data.History[len(data.History)-hm.maxHistory:]
 	}
@@ -147,4 +146,3 @@ func (hm *HistoryManager) GetLastCommand() string {
 	}
 	return history[0].Command
 }
-
