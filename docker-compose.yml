@@ -1,24 +1,56 @@
 version: '3.8'
 
 services:
+  # Go калькулятор с веб-интерфейсом
   calculator:
     build:
       context: .
       dockerfile: go-app.Dockerfile
+    container_name: calculator-app
     ports:
       - "8080:8080"
+    environment:
+      - USER=${USER:-42}
+      - PASSWORD=${PASSWORD:-dkljRktA}
+      - DEEPSEEK_URL=${DEEPSEEK_URL:-http://deproxy.kchugalinskiy.ru/deeproxy/api}
+    volumes:
+      # Сохраняем данные калькулятора на хосте
+      - ./calculator_data.json:/root/calculator_data.json
+      - ./static:/root/static:ro
     networks:
       - app-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
+  # Python WebRTC сервер
   webrtc:
     build:
       context: .
       dockerfile: webrtc.Dockerfile
+    container_name: webrtc-server
     ports:
       - "8000:8000"
+    volumes:
+      # Монтируем локальные файлы вместо клонирования из Git
+      - ./server.py:/app/server.py:ro
+      - ./index.html:/app/index.html:ro
+      - ./requirements.txt:/app/requirements.txt:ro
     networks:
       - app-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
   app-net:
     driver: bridge
+    name: calculator-webrtc-network
