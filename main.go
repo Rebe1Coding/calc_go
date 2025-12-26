@@ -1,12 +1,11 @@
 package main
 
 import (
+	"app/core/interpreter"
+	"app/ui"
 	"fmt"
 	"log"
 	"time"
-
-	"app/core/interpreter"
-	"app/ui"
 
 	"github.com/skratchdot/open-golang/open"
 )

@@ -14,43 +14,110 @@ services:
       - PASSWORD=${PASSWORD:-dkljRktA}
       - DEEPSEEK_URL=${DEEPSEEK_URL:-http://deproxy.kchugalinskiy.ru/deeproxy/api}
     volumes:
-      # Сохраняем данные калькулятора на хосте
       - ./calculator_data.json:/root/calculator_data.json
       - ./static:/root/static:ro
     networks:
-      - app-net
+      - monitoring
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=8080"
+      - "prometheus.path=/metrics"
 
   # Python WebRTC сервер
   webrtc:
     build:
-      context: .
+      context: ./app
       dockerfile: webrtc.Dockerfile
     container_name: webrtc-server
     ports:
       - "8000:8000"
     volumes:
-      # Монтируем локальные файлы вместо клонирования из Git
-      - ./server.py:/app/server.py:ro
-      - ./index.html:/app/index.html:ro
-      - ./requirements.txt:/app/requirements.txt:ro
+      - ./app/server.py:/app/server.py:ro
+      - ./app/index.html:/app/index.html:ro
+      - ./app/requirements.txt:/app/requirements.txt:ro
     networks:
-      - app-net
+      - monitoring
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=8000"
+      - "prometheus.path=/metrics"
 
+  # Prometheus - сбор метрик
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - monitoring
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana - визуализация метрик
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Node Exporter - метрики хоста (опционально)
+  
 networks:
-  app-net:
+  monitoring:
     driver: bridge
-    name: calculator-webrtc-network
+    name: monitoring-network
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
