@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'webrtc-calculator'
+    environment: 'production'
+
+# Правила алертинга
+rule_files:
+  - 'alerts.yml'
+
+# Конфигурация scraping
+scrape_configs:
+  # Prometheus самомониторинг
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Go калькулятор
+  - job_name: 'calculator'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['calculator-app:8080']
+        labels:
+          service: 'calculator'
+          app: 'go-calculator'
+    metrics_path: '/metrics'
+    
+  # Python WebRTC сервер
+  - job_name: 'webrtc'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['webrtc-server:8000']
+        labels:
+          service: 'webrtc'
+          app: 'python-webrtc'
+    metrics_path: '/metrics'
+
+  # Grafana
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          service: 'grafana'

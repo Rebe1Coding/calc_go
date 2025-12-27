@@ -1,0 +1,116 @@
+groups:
+  - name: calculator_alerts
+    interval: 30s
+    rules:
+      # Калькулятор недоступен
+      - alert: CalculatorDown
+        expr: up{job="calculator"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: calculator
+        annotations:
+          summary: "Calculator service is down"
+          description: "Calculator has been down for more than 1 minute"
+
+      # Много ошибок в калькуляторе
+      - alert: CalculatorHighErrorRate
+        expr: rate(calculator_operations_total{type="error"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: calculator
+        annotations:
+          summary: "High error rate in Calculator"
+          description: "Calculator error rate is {{ $value }} errors/sec"
+
+      # Медленные запросы
+      - alert: CalculatorSlowRequests
+        expr: histogram_quantile(0.95, rate(calculator_http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: calculator
+        annotations:
+          summary: "Calculator slow requests"
+          description: "95th percentile of request duration is {{ $value }}s"
+
+  - name: webrtc_alerts
+    interval: 30s
+    rules:
+      # WebRTC сервер недоступен
+      - alert: WebRTCDown
+        expr: up{job="webrtc"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: webrtc
+        annotations:
+          summary: "WebRTC service is down"
+          description: "WebRTC server has been down for more than 1 minute"
+
+      # Много активных подключений
+      - alert: WebRTCHighConnections
+        expr: webrtc_websocket_connections > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: webrtc
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "WebRTC has {{ $value }} active connections"
+
+      # Много ошибок
+      - alert: WebRTCHighErrorRate
+        expr: rate(webrtc_errors_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: webrtc
+        annotations:
+          summary: "High error rate in WebRTC"
+          description: "WebRTC error rate is {{ $value }} errors/sec"
+
+      # Долгие звонки (подозрительно)
+      - alert: WebRTCVeryLongCalls
+        expr: webrtc_active_calls > 0 and histogram_quantile(0.95, rate(webrtc_call_duration_seconds_bucket[1h])) > 3600
+        for: 10m
+        labels:
+          severity: info
+          service: webrtc
+        annotations:
+          summary: "Very long active calls detected"
+          description: "Some calls are running for more than 1 hour"
+
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # Высокое использование CPU
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}%"
+
+      # Высокое использование памяти
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}%"
+
+      # Мало места на диске
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Only {{ $value }}% disk space remaining"

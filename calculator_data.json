@@ -9,146 +9,156 @@
     {
       "command": "0.000000000001+0.00000000000001/3",
       "timestamp": "2025-10-17T20:28:03+03:00",
-      "id": 3
+      "id": 1
     },
     {
       "command": "2",
       "timestamp": "2025-10-17T20:28:05+03:00",
-      "id": 4
+      "id": 2
     },
     {
       "command": "x=3",
       "timestamp": "2025-10-17T20:28:09+03:00",
-      "id": 5
+      "id": 3
     },
     {
       "command": "x+3",
       "timestamp": "2025-10-17T20:28:17+03:00",
-      "id": 6
+      "id": 4
     },
     {
       "command": "cls",
       "timestamp": "2025-10-17T20:28:21+03:00",
-      "id": 7
+      "id": 5
     },
     {
       "command": "q",
       "timestamp": "2025-10-17T20:28:48+03:00",
-      "id": 8
+      "id": 6
     },
     {
       "command": "quit",
       "timestamp": "2025-10-17T20:28:51+03:00",
-      "id": 9
+      "id": 7
     },
     {
       "command": "/show",
       "timestamp": "2025-10-17T20:29:31+03:00",
-      "id": 10
+      "id": 8
     },
     {
       "command": "x = 20",
       "timestamp": "2025-10-17T20:38:30+03:00",
-      "id": 11
+      "id": 9
     },
     {
       "command": "x=20",
       "timestamp": "2025-10-17T20:38:56+03:00",
-      "id": 12
+      "id": 10
     },
     {
       "command": "x=30",
       "timestamp": "2025-10-17T20:42:22+03:00",
-      "id": 13
+      "id": 11
     },
     {
       "command": "x+4",
       "timestamp": "2025-10-17T20:42:31+03:00",
-      "id": 14
+      "id": 12
     },
     {
       "command": "\\vars",
       "timestamp": "2025-10-17T20:42:37+03:00",
-      "id": 15
+      "id": 13
     },
     {
       "command": "\\vars",
       "timestamp": "2025-10-17T20:57:06+03:00",
-      "id": 16
+      "id": 14
     },
     {
       "command": "curl https://randomuser.me/api/",
       "timestamp": "2025-10-17T21:25:00+03:00",
-      "id": 17
+      "id": 15
     },
     {
       "command": "curl https://randomuser.me/api/",
       "timestamp": "2025-10-17T21:25:03+03:00",
-      "id": 18
+      "id": 16
     },
     {
       "command": "x=10",
       "timestamp": "2025-10-21T00:59:40+03:00",
-      "id": 19
+      "id": 17
     },
     {
       "command": "x",
       "timestamp": "2025-10-21T00:59:42+03:00",
-      "id": 20
+      "id": 18
     },
     {
       "command": "x+3",
       "timestamp": "2025-10-21T00:59:46+03:00",
-      "id": 21
+      "id": 19
     },
     {
       "command": "Hi bro",
       "timestamp": "2025-10-21T00:59:53+03:00",
-      "id": 22
+      "id": 20
     },
     {
       "command": "q",
       "timestamp": "2025-10-21T01:05:19+03:00",
-      "id": 23
+      "id": 21
     },
     {
       "command": "q",
       "timestamp": "2025-10-21T01:05:26+03:00",
-      "id": 24
+      "id": 22
     },
     {
       "command": "x=10",
       "timestamp": "2025-10-21T01:25:35+03:00",
-      "id": 25
+      "id": 23
     },
     {
       "command": "x",
       "timestamp": "2025-10-21T01:25:38+03:00",
-      "id": 26
+      "id": 24
     },
     {
       "command": "5+4",
       "timestamp": "2025-10-21T01:26:24+03:00",
-      "id": 27
+      "id": 25
     },
     {
       "command": "q",
       "timestamp": "2025-11-14T18:52:09+03:00",
-      "id": 28
+      "id": 26
     },
     {
       "command": "exite",
       "timestamp": "2025-11-14T18:52:16+03:00",
-      "id": 29
+      "id": 27
     },
     {
       "command": "q",
       "timestamp": "2025-11-14T18:52:17+03:00",
-      "id": 30
+      "id": 28
     },
     {
       "command": "q",
       "timestamp": "2025-11-14T18:52:18+03:00",
+      "id": 29
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:19+03:00",
+      "id": 30
+    },
+    {
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:19+03:00",
       "id": 31
     },
     {
@@ -168,16 +178,16 @@
     },
     {
       "command": "q",
-      "timestamp": "2025-11-14T18:52:19+03:00",
+      "timestamp": "2025-11-14T18:52:20+03:00",
       "id": 35
     },
     {
       "command": "q",
-      "timestamp": "2025-11-14T18:52:19+03:00",
+      "timestamp": "2025-11-14T18:52:20+03:00",
       "id": 36
     },
     {
-      "command": "q",
+      "command": "qq",
       "timestamp": "2025-11-14T18:52:20+03:00",
       "id": 37
     },
@@ -187,13 +197,13 @@
       "id": 38
     },
     {
-      "command": "qq",
-      "timestamp": "2025-11-14T18:52:20+03:00",
+      "command": "q",
+      "timestamp": "2025-11-14T18:52:21+03:00",
       "id": 39
     },
     {
       "command": "q",
-      "timestamp": "2025-11-14T18:52:20+03:00",
+      "timestamp": "2025-11-14T18:52:21+03:00",
       "id": 40
     },
     {
@@ -217,243 +227,243 @@
       "id": 44
     },
     {
-      "command": "q",
-      "timestamp": "2025-11-14T18:52:21+03:00",
-      "id": 45
-    },
-    {
-      "command": "q",
-      "timestamp": "2025-11-14T18:52:21+03:00",
-      "id": 46
-    },
-    {
       "command": "5+5",
       "timestamp": "2025-11-14T19:02:14+03:00",
-      "id": 47
+      "id": 45
     },
     {
       "command": "11",
       "timestamp": "2025-11-14T19:02:17+03:00",
-      "id": 48
+      "id": 46
     },
     {
       "command": "3+3+3",
       "timestamp": "2025-11-14T19:02:47+03:00",
-      "id": 49
+      "id": 47
     },
     {
       "command": "x=10",
       "timestamp": "2025-11-14T19:02:54+03:00",
-      "id": 50
+      "id": 48
     },
     {
       "command": "x=111",
       "timestamp": "2025-11-14T19:23:29+03:00",
-      "id": 51
+      "id": 49
     },
     {
       "command": "5+5",
       "timestamp": "2025-11-14T19:44:00+03:00",
-      "id": 52
+      "id": 50
     },
     {
       "command": "10+4",
       "timestamp": "2025-11-14T19:44:11+03:00",
-      "id": 53
+      "id": 51
     },
     {
       "command": "y=7",
       "timestamp": "2025-11-14T19:44:30+03:00",
-      "id": 54
+      "id": 52
     },
     {
       "command": "5+5",
       "timestamp": "2025-11-14T20:20:54+03:00",
-      "id": 55
+      "id": 53
     },
     {
       "command": "9-7",
       "timestamp": "2025-11-14T20:28:27+03:00",
-      "id": 56
+      "id": 54
     },
     {
       "command": "2+2",
       "timestamp": "2025-11-14T20:28:50+03:00",
-      "id": 57
+      "id": 55
     },
     {
       "command": "2+2",
       "timestamp": "2025-11-14T20:28:54+03:00",
-      "id": 58
+      "id": 56
     },
     {
       "command": "2+2",
       "timestamp": "2025-11-14T20:28:58+03:00",
-      "id": 59
+      "id": 57
     },
     {
       "command": "1+1",
       "timestamp": "2025-11-14T20:29:04+03:00",
-      "id": 60
+      "id": 58
     },
     {
       "command": "1+1",
       "timestamp": "2025-11-14T20:29:13+03:00",
-      "id": 61
+      "id": 59
     },
     {
       "command": "x = https://jsonplaceholder.typicode.com/",
       "timestamp": "2025-11-14T20:41:05+03:00",
-      "id": 62
+      "id": 60
     },
     {
       "command": "x = \"https://jsonplaceholder.typicode.com/\"",
       "timestamp": "2025-11-14T20:41:20+03:00",
-      "id": 63
+      "id": 61
     },
     {
       "command": "войти генадий",
       "timestamp": "2025-12-05T20:36:01+03:00",
-      "id": 64
+      "id": 62
     },
     {
       "command": "login alice",
       "timestamp": "2025-12-05T20:36:39+03:00",
-      "id": 65
+      "id": 63
     },
     {
       "command": "войти генадий",
       "timestamp": "2025-12-05T20:53:14+03:00",
-      "id": 66
+      "id": 64
     },
     {
       "command": "войти геннадий ",
       "timestamp": "2025-12-05T21:17:21+03:00",
-      "id": 67
+      "id": 65
     },
     {
       "command": "login alice",
       "timestamp": "2025-12-05T21:32:57+03:00",
-      "id": 68
+      "id": 66
     },
     {
       "command": "login lol",
       "timestamp": "2025-12-05T21:59:14+03:00",
-      "id": 69
+      "id": 67
     },
     {
       "command": "login antochick ",
       "timestamp": "2025-12-05T22:05:54+03:00",
-      "id": 70
+      "id": 68
     },
     {
       "command": "login lol",
       "timestamp": "2025-12-10T17:13:44+03:00",
-      "id": 71
+      "id": 69
     },
     {
       "command": "войти antonchuk",
       "timestamp": "2025-12-10T17:15:23+03:00",
-      "id": 72
+      "id": 70
     },
     {
       "command": "login <lol>",
       "timestamp": "2025-12-10T17:19:16+03:00",
-      "id": 73
+      "id": 71
     },
     {
       "command": "login kk",
       "timestamp": "2025-12-10T17:19:26+03:00",
-      "id": 74
+      "id": 72
     },
     {
       "command": "login lol",
       "timestamp": "2025-12-10T17:28:24+03:00",
-      "id": 75
+      "id": 73
     },
     {
       "command": "позвонить kek audio",
       "timestamp": "2025-12-10T17:32:36+03:00",
-      "id": 76
+      "id": 74
     },
     {
       "command": "login kek",
       "timestamp": "2025-12-10T17:35:34+03:00",
-      "id": 77
+      "id": 75
     },
     {
       "command": "login suck",
       "timestamp": "2025-12-10T17:35:43+03:00",
-      "id": 78
+      "id": 76
     },
     {
       "command": "login hhh",
       "timestamp": "2025-12-10T17:36:03+03:00",
-      "id": 79
+      "id": 77
     },
     {
       "command": "login lol",
       "timestamp": "2025-12-10T17:36:16+03:00",
-      "id": 80
+      "id": 78
     },
     {
       "command": "login lol",
       "timestamp": "2025-12-10T17:36:26+03:00",
-      "id": 81
+      "id": 79
     },
     {
       "command": "login kek",
       "timestamp": "2025-12-10T17:36:32+03:00",
-      "id": 82
+      "id": 80
     },
     {
       "command": "login kek",
       "timestamp": "2025-12-10T19:59:26+03:00",
-      "id": 83
+      "id": 81
     },
     {
       "command": "позвонить lol video",
       "timestamp": "2025-12-10T19:59:35+03:00",
-      "id": 84
+      "id": 82
     },
     {
       "command": "5+5",
       "timestamp": "2025-12-11T20:44:16+03:00",
-      "id": 85
+      "id": 83
     },
     {
       "command": "5+5",
       "timestamp": "2025-12-12T19:03:57+03:00",
-      "id": 86
+      "id": 84
     },
     {
       "command": "7+8*5",
       "timestamp": "2025-12-12T19:04:05+03:00",
-      "id": 87
+      "id": 85
     },
     {
       "command": "5+5",
       "timestamp": "2025-12-12T19:11:50+03:00",
-      "id": 88
+      "id": 86
     },
     {
       "command": "logout",
       "timestamp": "2025-12-12T19:49:16+03:00",
+      "id": 87
+    },
+    {
+      "command": "5/0",
+      "timestamp": "2025-12-12T19:49:37+03:00",
+      "id": 88
+    },
+    {
+      "command": "5/0",
+      "timestamp": "2025-12-12T19:49:37+03:00",
       "id": 89
-    },
-    {
-      "command": "5/0",
-      "timestamp": "2025-12-12T19:49:37+03:00",
-      "id": 90
-    },
-    {
-      "command": "5/0",
-      "timestamp": "2025-12-12T19:49:37+03:00",
-      "id": 91
     },
     {
       "command": "5 / 0",
       "timestamp": "2025-12-12T19:49:47+03:00",
+      "id": 90
+    },
+    {
+      "command": "5/0",
+      "timestamp": "2025-12-12T19:49:56+03:00",
+      "id": 91
+    },
+    {
+      "command": "5/0",
+      "timestamp": "2025-12-12T19:49:56+03:00",
       "id": 92
     },
     {
@@ -463,48 +473,38 @@
     },
     {
       "command": "5/0",
-      "timestamp": "2025-12-12T19:49:56+03:00",
-      "id": 94
-    },
-    {
-      "command": "5/0",
-      "timestamp": "2025-12-12T19:49:56+03:00",
-      "id": 95
-    },
-    {
-      "command": "5/0",
       "timestamp": "2025-12-12T20:01:13+03:00",
-      "id": 96
+      "id": 94
     },
     {
       "command": "7+7",
       "timestamp": "2025-12-12T20:01:30+03:00",
-      "id": 97
+      "id": 95
     },
     {
       "command": "z=5",
       "timestamp": "2025-12-12T20:01:40+03:00",
-      "id": 98
+      "id": 96
     },
     {
       "command": "5+5",
       "timestamp": "2025-12-12T20:53:50+03:00",
-      "id": 99
+      "id": 97
     },
     {
       "command": "7/0",
       "timestamp": "2025-12-12T20:54:01+03:00",
-      "id": 100
+      "id": 98
     },
     {
       "command": "2+2",
       "timestamp": "2025-12-26T23:35:23+03:00",
-      "id": 101
+      "id": 99
     },
     {
       "command": "t=10",
       "timestamp": "2025-12-26T23:35:38+03:00",
-      "id": 101
+      "id": 100
     }
   ]
 }
